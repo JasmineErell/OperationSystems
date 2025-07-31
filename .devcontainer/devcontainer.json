@@ -1,0 +1,15 @@
+{
+    "name": "C23 Dev (GCC 13)",
+    "build": {
+      "dockerfile": "Dockerfile",
+      "platform": "linux/amd64"
+    },
+    "settings": {
+      "terminal.integrated.defaultProfile.linux": "bash"
+    },
+    "extensions": [
+      "ms-vscode.cpptools",
+      "ms-vscode.cmake-tools"
+    ],
+    "remoteUser": "vscode"
+  }
