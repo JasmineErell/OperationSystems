@@ -7,6 +7,7 @@ typedef struct
     pthread_mutex_t mutex; //Mutex for thread safety
     pthread_cond_t condition; //Condition variable 
     int signaled; //Flag to remember if monitor was signaled 
+    int initialized; //Flag to check if monitor is initialized
 } monitor_t;
 
 
