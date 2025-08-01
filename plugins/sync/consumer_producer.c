@@ -56,13 +56,13 @@ int consumer_producer_init(consumer_producer_t* queue, int capacity)
     }
 
     if (pthread_mutex_init(&queue->shared_mutex, NULL) != 0) {
-    monitor_destroy(&queue->not_empty_monitor);
-    monitor_destroy(&queue->not_full_monitor);
-    free(queue->items);
-    fprintf(stderr, "Error: Failed to initialize shared_mutex.\n");
-    return -1;
+        monitor_destroy(&queue->not_empty_monitor);
+        monitor_destroy(&queue->not_full_monitor);
+        free(queue->items);
+        fprintf(stderr, "Error: Failed to initialize shared_mutex.\n");
+        return -1;
     }
-
+    queue->initialized = 1; // Mark as initialized
     return 0;
 }
 
@@ -90,17 +90,22 @@ void consumer_producer_destroy(consumer_producer_t* queue)
     // Free items array
     free(queue->items);
     queue->items = NULL; // Prevent dangling pointer
+    queue->initialized = 0; // Mark as uninitialized
 }
 
 int consumer_producer_put(consumer_producer_t* queue, const char*item)
 {
-    //fprintf(stderr, "PUTTING AN ITEM: %s\n", item);
     if (queue == NULL) {
         fprintf(stderr, "Error: consumer_producer_put received NULL queue.\n");
         return -1;
     }
     if (item == NULL) {
         fprintf(stderr, "Error: consumer_producer_put received NULL item.\n");
+        return -1;
+    }
+
+    if (queue-> initialized == 0) {
+        fprintf(stderr, "Error: consumer_producer_put called on uninitialized queue.\n");
         return -1;
     }
 
@@ -131,6 +136,10 @@ char* consumer_producer_get(consumer_producer_t* queue)
     if (queue-> count <= 0) {
         printf("Error: consumer_producer_get called on empty queue.\n");
         return item; // Return NULL if queue is empty
+    }
+
+    if (queue-> initialized == 0) {
+        return "Error: consumer_producer_put called on uninitialized queue.\n";
     }
 
     // Critical part 
