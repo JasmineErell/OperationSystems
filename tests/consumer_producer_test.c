@@ -358,49 +358,63 @@ int test_blocking_behavior() {
     return 1;
 }
 
+typedef struct {
+    consumer_producer_t* queue;
+    int* wait_flag;
+} wait_test_data_t;
+
+void* wait_thread_func(void* arg) {
+    wait_test_data_t* data = (wait_test_data_t*) arg;
+    consumer_producer_wait_finished(data->queue);
+    *(data->wait_flag) = 1;
+    return NULL;
+}
+
 int test_finished_signal_timing() {
     print_test_header("Finished Signal Timing Tests");
-    
+
     consumer_producer_t queue;
     if (consumer_producer_init(&queue, 5) != 0) {
         print_test_result("Finished Signal Timing Setup", 0);
         return 0;
     }
-    
-    // Test 1: Wait then signal (should timeout, then signal)
-    printf("  Testing wait without prior signal (with timeout)...\n");
-    
-    // Set up timeout
-    timeout_test_flag = 0;
-    signal(SIGALRM, timeout_alarm_handler);
-    alarm(2);  // 2-second timeout
-    
-    // This should timeout since no signal was sent
-    int wait_result = consumer_producer_wait_finished(&queue);
-    alarm(0);  // Cancel alarm
-    
-    if (!timeout_test_flag && wait_result == 0) {
+
+    printf("  Testing blocking behavior before signal...\n");
+
+    int wait_completed = 0;
+    pthread_t waiter_thread;
+
+    wait_test_data_t data = { .queue = &queue, .wait_flag = &wait_completed };
+    pthread_create(&waiter_thread, NULL, wait_thread_func, &data);
+
+    // Give the waiter thread time to block
+    usleep(200000); // 200ms
+
+    if (wait_completed != 0) {
+        pthread_join(waiter_thread, NULL);
         consumer_producer_destroy(&queue);
-        print_test_result("Wait should timeout without signal", 0);
+        print_test_result("Should block before signal", 0);
         return 0;
     }
-    
-    printf("    Wait properly timed out, now testing signal...\n");
-    
-    // Now signal and wait - should return immediately
+
+    printf("    Waiter thread is correctly blocked. Now sending signal...\n");
+
+    // Now signal finished
     consumer_producer_signal_finished(&queue);
-    wait_result = consumer_producer_wait_finished(&queue);
-    
-    if (wait_result != 0) {
+
+    pthread_join(waiter_thread, NULL);
+
+    if (wait_completed == 0) {
         consumer_producer_destroy(&queue);
-        print_test_result("Wait after signal failed", 0);
+        print_test_result("Should unblock after signal", 0);
         return 0;
     }
-    
+
     consumer_producer_destroy(&queue);
     print_test_result("Finished Signal Timing Tests", 1);
     return 1;
 }
+
 
 // =============================================================================
 // BASIC TESTS
