@@ -4,10 +4,6 @@
 #include <string.h>
 
 
-//Initialize a consumer-producer queue
-//Input - queue: Pointer to queue structure
-//Input - capacity: Maximum number of items
-//Output - NULL on success, error message on failure - the caller needs to check the returned string!
 int consumer_producer_init(consumer_producer_t* queue, int capacity)
 {
     if (queue == NULL) {
@@ -62,12 +58,13 @@ int consumer_producer_init(consumer_producer_t* queue, int capacity)
         fprintf(stderr, "Error: Failed to initialize shared_mutex.\n");
         return -1;
     }
-    queue->initialized = 1; // Mark as initialized
+    queue->initialized = 1; 
+    queue->finished = 0;
     return 0;
 }
 
-//Destroy a consumer-producer queue and free its resources
-//Input - queue: Pointer to queue structure 
+
+
 void consumer_producer_destroy(consumer_producer_t* queue)
 {
     if (queue == NULL) {
@@ -95,6 +92,7 @@ void consumer_producer_destroy(consumer_producer_t* queue)
 
 int consumer_producer_put(consumer_producer_t* queue, const char*item)
 {
+    int warned = 0; // Flag to track if we warned about full queue
     if (queue == NULL) {
         fprintf(stderr, "Error: consumer_producer_put received NULL queue.\n");
         return -1;
@@ -108,13 +106,14 @@ int consumer_producer_put(consumer_producer_t* queue, const char*item)
         fprintf(stderr, "Error: consumer_producer_put called on uninitialized queue.\n");
         return -1;
     }
-
     pthread_mutex_lock(&queue->shared_mutex);
-    // Wait until there is space in the queue
+    
     while (queue->count == queue->capacity) {
-        // Wait until the queue is not full
-        printf("[Producer] Waiting for space in the queue...\n");
-        monitor_wait(&queue->not_full_monitor);
+        if (!warned) {
+            fprintf(stderr, "[Producer] Waiting for space in the queue...\n");
+            warned = 1; // Set flag to avoid multiple warnings
+        }
+        monitor_wait(&queue->not_full_monitor, &queue->shared_mutex);
     }
 
     queue->items[queue->tail] = strdup(item); 
@@ -127,27 +126,32 @@ int consumer_producer_put(consumer_producer_t* queue, const char*item)
 
 char* consumer_producer_get(consumer_producer_t* queue)
 {
+    int warned = 0; // Flag to track if we warned about empty queue
     char* item = NULL; // Initialize item to NULL, will be returned
     if (queue == NULL) {
         printf("Error: consumer_producer_get received NULL.\n");
         return item;
     }
 
-    if (queue-> count <= 0) {
-        printf("Error: consumer_producer_get called on empty queue.\n");
-        return item; // Return NULL if queue is empty
-    }
-
     if (queue-> initialized == 0) {
-        return "Error: consumer_producer_put called on uninitialized queue.\n";
+        fprintf(stderr, "Error: consumer_producer_get called on uninitialized queue.\n");
+        return NULL;
     }
 
     // Critical part 
     pthread_mutex_lock(&queue->shared_mutex); //Prevent race conditions while waiting
     // Keep waiting if the queue is empty (handles races conditions)
-    while (queue->count == 0) {
-        printf("[Consumer] Waiting for new items in the queue...\n");
-        monitor_wait(&queue->not_empty_monitor);
+    while (queue->count == 0 && !queue->finished) {
+        if (!warned) {
+            fprintf(stderr, "[Consumer] Waiting for items in the queue...\n");
+            warned = 1; // Set flag to avoid multiple warnings
+        }
+        monitor_wait(&queue->not_empty_monitor, &queue->shared_mutex);
+    }
+
+    if (queue->count == 0 && queue->finished) {// We stop waiting here and do not want te get an infinite loop
+    pthread_mutex_unlock(&queue->shared_mutex);
+    return NULL;
     }
 
     
@@ -186,7 +190,7 @@ int consumer_producer_wait_finished(consumer_producer_t* queue)
     pthread_mutex_lock(&queue->shared_mutex);
     while (!queue->finished) { // Wait until finished
         printf("[Consumer] Waiting for processing to finish...\n");
-        monitor_wait(&queue->finished_monitor);
+        monitor_wait(&queue->finished_monitor, &queue->shared_mutex);
     }
     pthread_mutex_unlock(&queue->shared_mutex);
 

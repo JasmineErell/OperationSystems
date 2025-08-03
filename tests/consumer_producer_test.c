@@ -188,7 +188,7 @@ int test_invalid_parameters() {
         print_test_result("Get from destroyed queue", 0);
         return 0;
     }
-    fprintf(stderr, "YOU ARE HERE\n");
+    
     result = consumer_producer_put(&queue, "test");
     if (result == 0) {
         print_test_result("Put to destroyed queue", 0);
@@ -274,11 +274,12 @@ int test_blocking_behavior() {
         return 0;
     }
     
-    printf("    Consumer is properly blocked, now providing an item...\n");
+    printf("   Consumer is properly blocked, now providing an item...\n");
     
     // Provide an item to unblock the consumer
     char* test_item = create_test_string(123);
-    consumer_producer_put(&queue, test_item);
+    int res = consumer_producer_put(&queue, test_item);
+    fprintf(stderr, "PUT RESULT: %d\n", res);
     
     pthread_join(consumer_thread, NULL);
     
@@ -339,10 +340,12 @@ int test_blocking_behavior() {
     }
     
     printf("  Producer blocking test passed\n");
-    
+    fprintf(stderr, "YOU ARE HERE\n");
     // Clean up remaining items
+    consumer_producer_signal_finished(&queue);
     while (true) {
         char* item = consumer_producer_get(&queue);
+        fprintf(stderr, "GET RESULT: %s\n", item ? item : "NULL");
         if (item) {
             free(item);
         } else {

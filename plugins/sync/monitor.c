@@ -4,22 +4,19 @@
 //When calling it remember to crate space!
 int monitor_init(monitor_t* monitor)
 {
-    if (monitor == NULL) {
-        fprintf(stderr, "Error: monitor pointer is NULL.\n");
-        return -1; // Monitor pointer is NULL
-    }
+if (monitor == NULL) {
+    fprintf(stderr, "Error: monitor pointer is NULL.\n");
+    return -1; // Monitor pointer is NULL
+}
 
-    if (pthread_mutex_init(&monitor->mutex, NULL) != 0) {
-        return -1; // Mutex initialization failed
-    }
+if (pthread_cond_init(&monitor->condition, NULL) != 0)
+{
+    return -1;
+}
 
-    if (pthread_cond_init(&monitor->condition, NULL) != 0) {
-        pthread_mutex_destroy(&monitor->mutex); //because we already initialized the mutex
-        return -1; // Condition variable initialization failed
-    }
-    monitor->initialized = 1;
-    monitor->signaled = 0; // Initialize the signaled flag
-    return 0; // Success
+monitor->initialized = 1;
+monitor->signaled = 0;
+return 0;
 }
 
 //When calling it remember to free space!
@@ -34,50 +31,51 @@ void monitor_destroy(monitor_t* monitor)
         fprintf(stderr, "Error: monitor is not initialized.\n");
         return; // Monitor was not initialized
     }
-
-    pthread_mutex_destroy(&monitor->mutex); // Destroy the mutex
+    monitor->initialized = 0; // Mark as uninitialized
     pthread_cond_destroy(&monitor->condition); // Destroy the condition variable
 }
 
 void monitor_signal(monitor_t* monitor)
 {
+    //external lock already loceked, so we do not need to lock it here
    if (monitor == NULL) {
         fprintf(stderr, "Error: monitor_signal received NULL.\n");
         return;  
     }
 
-    pthread_mutex_lock(&monitor->mutex); // Critical part starts
     monitor->signaled = 1; // Set the signaled flag
     pthread_cond_signal(&monitor->condition); // Signal the condition variable
-    pthread_mutex_unlock(&monitor->mutex); // Critical part ends
+    
 }
 
 void monitor_reset(monitor_t* monitor)
+//Make sure calling it while holding the lock
 {
     if (monitor == NULL) {
         fprintf(stderr, "Error: monitor_signal received NULL.\n");
         return;  
     }
-
-    pthread_mutex_lock(&monitor->mutex); // Critical part starts
-    monitor->signaled = 0; // Reset the signaled flag
-    pthread_mutex_unlock(&monitor->mutex); // Critical part ends
+    monitor->signaled = 0; 
 }
 
-int monitor_wait(monitor_t* monitor)
+int monitor_wait(monitor_t* monitor, pthread_mutex_t* shared_mutex)
 {
     if (monitor == NULL) {
         fprintf(stderr, "Error: monitor pointer is NULL.\n");
         return -1; // Monitor pointer is NULL
     }
 
-    pthread_mutex_lock(&monitor->mutex); // Critical part starts
-    while (!monitor->signaled) { // Wait until signaled
-        pthread_cond_wait(&monitor->condition, &monitor->mutex); //Here the thread is asleep, making a room to ither thread do see the flag, and change it.
-    }
-    monitor->signaled = 0; // Reset the flag after being signaled
-    pthread_mutex_unlock(&monitor->mutex); // Critical part ends (after waking up the thread aquires the mutex again)
+    if (shared_mutex == NULL) {
+        fprintf(stderr, "Error: shared mutex pointer is NULL.\n");
+        return -1; // Shared mutex pointer is NULL
+    }   
 
+    while (!monitor->signaled) { 
+        pthread_cond_wait(&monitor->condition, shared_mutex); 
+    }
+
+    monitor->signaled = 0; // Reset the flag after being signaled
+  
     return 0; 
 }
 

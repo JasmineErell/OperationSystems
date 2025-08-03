@@ -4,7 +4,6 @@
 //* This solves the race condition where signals sent before waiting are lost
 typedef struct
 {
-    pthread_mutex_t mutex; //Mutex for thread safety
     pthread_cond_t condition; //Condition variable 
     int signaled; //Flag to remember if monitor was signaled 
     int initialized; //Flag to check if monitor is initialized
@@ -46,4 +45,4 @@ void monitor_reset(monitor_t* monitor);
 * @param monitor Pointer to monitor structure
 * @return 0 on success, -1 on error
 */
-int monitor_wait(monitor_t* monitor);
+int monitor_wait(monitor_t* monitor, pthread_mutex_t* shared_mutex);
