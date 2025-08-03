@@ -15,7 +15,6 @@ if (pthread_cond_init(&monitor->condition, NULL) != 0)
 }
 
 monitor->initialized = 1;
-monitor->signaled = 0;
 return 0;
 }
 
@@ -43,7 +42,6 @@ void monitor_signal(monitor_t* monitor)
         return;  
     }
 
-    monitor->signaled = 1; // Set the signaled flag
     pthread_cond_signal(&monitor->condition); // Signal the condition variable
     
 }
@@ -55,7 +53,6 @@ void monitor_reset(monitor_t* monitor)
         fprintf(stderr, "Error: monitor_signal received NULL.\n");
         return;  
     }
-    monitor->signaled = 0; 
 }
 
 int monitor_wait(monitor_t* monitor, pthread_mutex_t* shared_mutex)
@@ -70,13 +67,7 @@ int monitor_wait(monitor_t* monitor, pthread_mutex_t* shared_mutex)
         return -1; // Shared mutex pointer is NULL
     }   
 
-    while (!monitor->signaled) { 
-        pthread_cond_wait(&monitor->condition, shared_mutex); 
-    }
-
-    monitor->signaled = 0; // Reset the flag after being signaled
-  
-    return 0; 
+    return pthread_cond_wait(&monitor->condition, shared_mutex);
 }
 
 

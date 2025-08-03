@@ -824,46 +824,59 @@ int test_concurrent_producers_consumers() {
 // STRESS TESTS
 // =============================================================================
 
-void* stress_producer_thread(void* arg) {
+void* stress_producer_thread(void* arg)
+{
     producer_data_t* data = (producer_data_t*)arg;
     time_t start_time = time(NULL);
-    
+
     while (time(NULL) - start_time < STRESS_TEST_DURATION) {
         char* item = create_test_string(data->items_produced);
-        
+
         if (consumer_producer_put(data->queue, item) == 0) {
             data->items_produced++;
         } else {
             free(item);
         }
-        
-        // Very small delay to prevent overwhelming
-        if (data->items_produced % 100 == 0) {
-            usleep(1);
+
+        /* Print every 1 000 items so logs stay readable */
+        if (data->items_produced % 1000 == 0) {
+            fprintf(stderr,
+                    "[P%2d] produced=%6d   queue_count=%d\n",
+                    data->thread_id,
+                    data->items_produced,
+                    data->queue->count);
         }
+
+        /* Tiny delay to avoid hammering the CPU */
+        if (data->items_produced % 100 == 0) usleep(1);
     }
-    
     return NULL;
 }
 
-void* stress_consumer_thread(void* arg) {
+void* stress_consumer_thread(void* arg)
+{
     consumer_data_t* data = (consumer_data_t*)arg;
     time_t start_time = time(NULL);
-    
+
     while (time(NULL) - start_time < STRESS_TEST_DURATION) {
         char* item = consumer_producer_get(data->queue);
-        
+
         if (item != NULL) {
             data->items_consumed++;
             free(item);
         }
-        
-        // Very small delay
-        if (data->items_consumed % 100 == 0) {
-            usleep(1);
+
+        /* Same once-per-thousand heartbeat */
+        if (data->items_consumed % 1000 == 0) {
+            fprintf(stderr,
+                    "[C%2d] consumed=%6d  queue_count=%d\n",
+                    data->thread_id,
+                    data->items_consumed,
+                    data->queue->count);
         }
+
+        if (data->items_consumed % 100 == 0) usleep(1);
     }
-    
     return NULL;
 }
 

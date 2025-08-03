@@ -4,6 +4,7 @@
 #include <string.h>
 
 
+
 int consumer_producer_init(consumer_producer_t* queue, int capacity)
 {
     if (queue == NULL) {
@@ -119,6 +120,12 @@ int consumer_producer_put(consumer_producer_t* queue, const char*item)
     queue->items[queue->tail] = strdup(item); 
     queue->tail = (queue->tail + 1) % (queue->capacity); // Cicly 
     queue->count++;
+
+    fprintf(stderr,
+            "[%ld][PUT] stored \"%s\"  cnt=%d h=%d t=%d\n",
+            (long)pthread_self(), item,
+            queue->count, queue->head, queue->tail);
+
     monitor_signal(&queue->not_empty_monitor); // Signal that the queue is not empty
     pthread_mutex_unlock(&queue->shared_mutex);
     return 0;
@@ -158,6 +165,12 @@ char* consumer_producer_get(consumer_producer_t* queue)
     item = queue->items[queue->head]; // Get the item
     queue->head = (queue->head + 1) % (queue->capacity); // Cycle
     queue->count--;
+
+    fprintf(stderr,
+            "[%ld][GET] took   \"%s\"  cnt=%d h=%d t=%d\n",
+            (long)pthread_self(), item,
+            queue->count, queue->head, queue->tail);
+
     monitor_signal(&queue->not_full_monitor); // Signal that the queue is not full for the producer
     pthread_mutex_unlock(&queue->shared_mutex);
 
