@@ -10,22 +10,37 @@ PLUGIN_TESTS=(
 )
 
 echo ""
-echo "🔍 Running all plugin tests..."
-echo "-----------------------------"
+echo "🔁 Rebuilding and testing all plugins..."
+echo "----------------------------------------"
 
 PASS=0
 FAIL=0
 
-for plugin in "${PLUGIN_TESTS[@]}"; do
-  binary="./output/test_${plugin}"
+mkdir -p output
 
-  if [[ ! -x "$binary" ]]; then
-    echo "⚠️  Skipping $plugin (binary missing)"
+for plugin in "${PLUGIN_TESTS[@]}"; do
+  echo "🔨 Building test for plugin: $plugin"
+
+  gcc -DPLUGIN=$plugin \
+      -o output/test_$plugin \
+      tests/test_all_plugins.c \
+      plugins/$plugin.c \
+      plugins/plugin_common.c \
+      plugins/sync/monitor.c \
+      plugins/sync/consumer_producer.c \
+      -Iplugins -lpthread
+
+  if [[ $? -ne 0 ]]; then
+    echo "❌ Build failed for $plugin"
+    ((FAIL++))
+    echo "-----------------------------"
     continue
   fi
 
-  echo "▶️ Running: $binary"
-  output=$($binary)
+  echo "✅ Built: output/test_$plugin"
+
+  echo "▶️ Running: ./output/test_$plugin"
+  output=$(./output/test_$plugin)
   status=$?
 
   echo "$output"

@@ -67,32 +67,32 @@ int simple_test_plugin(const char* plugin_name,
 
     attach(capture_output);
 
-    const char* inputs[] = { "abcd", "hello", "" };
-    for (int i = 0; i < 3; ++i) place_work(inputs[i]);
+    const char* inputs[] = { "abcd", "hello", "", "y", "Hi how are you?" };
+    for (int i = 0; i < 5; ++i) place_work(inputs[i]);
     place_work("<END>");
     wait_finished();
     fini();
 
-    ASSERT("output count != 3", output_count == 3);
+    ASSERT("output count != 5", output_count == 5);
 
     if (strcmp(plugin_name, "rotator") == 0) {
-        const char* expected[] = { "dabc", "ohell", "" };
-        return check_outputs(plugin_name, inputs, expected, 3);
+        const char* expected[] = { "dabc", "ohell", "", "y", "?Hi how are you" };
+        return check_outputs(plugin_name, inputs, expected, 5);
     } else if (strcmp(plugin_name, "flipper") == 0) {
-        const char* expected[] = { "dcba", "olleh", "" };
-        return check_outputs(plugin_name, inputs, expected, 3);
+        const char* expected[] = { "dcba", "olleh", "", "y", "?uoy era woh iH" };
+        return check_outputs(plugin_name, inputs, expected, 5);
     } else if (strcmp(plugin_name, "uppercaser") == 0) {
-        const char* expected[] = { "ABCD", "HELLO", "" };
-        return check_outputs(plugin_name, inputs, expected, 3);
+        const char* expected[] = { "ABCD", "HELLO", "", "Y", "HI HOW ARE YOU?" };
+        return check_outputs(plugin_name, inputs, expected, 5);
     } else if (strcmp(plugin_name, "expander") == 0) {
-        const char* expected[] = { "a b c d", "h e l l o", "" };
-        return check_outputs(plugin_name, inputs, expected, 3);
+        const char* expected[] = { "a b c d", "h e l l o", "", "y", "H i   h o w   a r e   y o u ?" };
+        return check_outputs(plugin_name, inputs, expected, 5);
     } else if (strcmp(plugin_name, "typewriter") == 0) {
-        const char* expected[] = { "abcd", "hello", "" };
-        return check_outputs(plugin_name, inputs, expected, 3);
+        const char* expected[] = { "abcd", "hello", "", "y", "Hi how are you?" };
+        return check_outputs(plugin_name, inputs, expected, 5);
     } else if (strcmp(plugin_name, "logger") == 0) {
-        const char* expected[] = { "abcd", "hello", "" };
-        return check_outputs(plugin_name, inputs, expected, 3);
+        const char* expected[] = { "abcd", "hello", "", "y", "Hi how are you?" };
+        return check_outputs(plugin_name, inputs, expected, 5);
     } else {
         printf("⚠️ Unknown plugin name: %s\n", plugin_name);
         return 0;

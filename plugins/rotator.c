@@ -7,6 +7,7 @@
 
 // Plugin logic
 static const char* plugin_transform(const char* input) {
+    fprintf(stderr, "🔄 Transforming input: %s\n", input ? input : "NULL");
     if (input == NULL) return NULL;
 
     size_t len = strlen(input);
@@ -26,6 +27,7 @@ static const char* plugin_transform(const char* input) {
 
     result[0] = input[len - 1];
     result[len] = '\0';  // null terminate
+    fprintf(stderr, "🔄 Transformed output: %s\n", result);
     return result;       // plugin_common will free it
 }
 
