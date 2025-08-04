@@ -1,0 +1,33 @@
+#include "plugin_common.h"
+#include "plugin_sdk.h"
+#include <string.h>
+#include <stdlib.h>
+
+// Plugin logic
+static const char* plugin_transform(const char* input) {
+    if (input == NULL) return NULL;
+
+    size_t len = strlen(input);
+
+    // Edge case: empty or single character string doesn't need rotation
+    if (len <= 1) {
+        return strdup(input);
+    }
+
+    char* result = malloc(len + 1); 
+    if (!result) return NULL;
+
+   
+    for (size_t i = 0; i < len; ++i) {
+        result[i] = input[len-1-i];
+    }
+
+    result[len] = '\0';  // null terminate
+    return result;       // plugin_common will free it
+}
+
+__attribute__((visibility("default")))
+const char* plugin_init(int queue_size) {
+    return common_plugin_init(plugin_transform, "flipper", queue_size);
+}
+

@@ -1,4 +1,4 @@
-#include "pluggin_common.h"
+#include "plugin_common.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -145,36 +145,36 @@ const char* plugin_init(int queue_size)
 }
 
 __attribute__((visibility("default")))
-int plugin_fini(void) {
+const char* plugin_fini(void) {
     int res = pthread_join(context.consumer_thread, NULL);
 
     if (res != 0) {
         log_error(&context, "Failed to join plugin thread");
-        return 1;
+        return "Failed to join plugin thread";
     }
 
     consumer_producer_destroy(context.queue);
-    return 0;
+    return NULL;
 }
 
 __attribute__((visibility("default")))
-int plugin_place_work(const char* str)
+const char* plugin_place_work(const char* str)
 {
     consumer_producer_t* queue = context.queue;
 
     if (str == NULL) {
         log_error(&context, "plugin_place_work received NULL string.");
-        return 1;
+        return "Received NULL string";
     }
 
     int result = consumer_producer_put(queue, str);
     if (result != 0) {
         log_error(&context, "Failed to put item in queue.");
-        return 1;
+        return "Failed to put item in queue";
     }
 
     log_info(&context, "Placed work in queue.");
-    return 0;
+    return NULL;
 }
 
 __attribute__((visibility("default")))
@@ -190,28 +190,28 @@ void plugin_attach(const char* (*next_place_work)(const char*))
 }
 
 __attribute__((visibility("default")))
-int plugin_wait_finished(void)
+const char* plugin_wait_finished(void)
 {
 
     if (!context.initialized) {
         log_error(&context, "plugin_wait_finished called before initialization.");
-        return 1;
+        return "Plugin not initialized";
     }
 
     if (context.finished) {
         log_info(&context, "Plugin has already finished processing.");
-        return 0;
+        return "Plugin already finished";
     }
 
     int res = consumer_producer_wait_finished(context.queue);
     if (res != 0) {
         log_error(&context, "Failed to wait for processing to finish.");
-        return 1;
+        return "Failed to wait for processing to finish";
     }
 
     context.finished = 1;
     log_info(&context, "Plugin finished processing successfully.");
-    return 0;
+    return NULL;  
 }
 
 

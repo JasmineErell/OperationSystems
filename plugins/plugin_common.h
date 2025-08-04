@@ -1,5 +1,5 @@
 #include <pthread.h>
-#include "consumer_producer.h"
+#include "sync/consumer_producer.h"
 
 // Plugin context structure
 typedef struct
@@ -67,7 +67,7 @@ pthread_join)
 * @return 0 on success, 1 on failure
 */
 __attribute__((visibility("default")))
-int plugin_fini(void);
+const char* plugin_fini(void);
 
 /**
 * Place work (a string) into the plugin's queue
@@ -75,7 +75,7 @@ int plugin_fini(void);
 * @return 0 on success, 1 on failure
 */
 __attribute__((visibility("default")))
-int plugin_place_work(const char* str);
+const char* plugin_place_work(const char* str);
 
 
 /**
@@ -94,4 +94,4 @@ shutdown
 * @return 0 on success, 1 on failure
 */
 __attribute__((visibility("default")))
-int plugin_wait_finished(void);
+const char* plugin_wait_finished(void);
