@@ -91,29 +91,29 @@ const char* common_plugin_init(const char *(*process_function)(const char *), co
     context.process_function = process_function;
 
     if (!process_function) {
-    log_error(&context, "[ERROR] common_plugin_init: process_function is NULL");
+    log_error(&context, "common_plugin_init: process_function is NULL");
     return "process_function is NULL";
     }
 
     if (!name) {
-        log_error(&context,"[ERROR] common_plugin_init: plugin name is NULL");
+        log_error(&context,"common_plugin_init: plugin name is NULL");
         return "plugin name is NULL";
     }
     if (queue_size <= 0) {
-        log_error(&context, "[ERROR] common_plugin_init: queue_size must be > 0");   
+        log_error(&context, "common_plugin_init: queue_size must be > 0");   
         return "queue_size must be > 0";
     }
 
     //Allocating and initing queue for consumer producer
     context.queue = malloc(sizeof *context.queue);
     if (!context.queue) {
-        log_error(&context, "[ERROR] malloc(queue) failed");
+        log_error(&context, "malloc(queue) failed");
         return "malloc failed";
     }
 
     int rc = consumer_producer_init(context.queue, queue_size);
     if (rc != 0) {
-        log_error(&context, "[ERROR] consumer_producer_init failed");
+        log_error(&context, "consumer_producer_init failed");
         consumer_producer_destroy(context.queue);  /* in case it half-initialised */
         free(context.queue);
         context.queue = NULL;
@@ -123,7 +123,7 @@ const char* common_plugin_init(const char *(*process_function)(const char *), co
     //Startnig consumer thread
     if (pthread_create(&context.consumer_thread, NULL,
                        plugin_consumer_thread, &context) != 0) {
-        log_error(&context, "[ERROR] pthread_create failed");
+        log_error(&context, "pthread_create failed");
         consumer_producer_destroy(context.queue);
         free(context.queue);
         context.queue = NULL;
@@ -132,17 +132,17 @@ const char* common_plugin_init(const char *(*process_function)(const char *), co
 
     //finial initialization
     context.initialized = 1;
-    log_info(&context, "[INFO] Plugin initialised successfully");
+    log_info(&context, "Plugin initialized successfully");
     return NULL;   
 
 }
 
-__attribute__((visibility("default")))
-const char* plugin_init(int queue_size)
-{
-    const char* (*plugin_transform)(const char*) = context.process_function;   
-    return common_plugin_init(plugin_transform, "<plugin_name>", queue_size);
-}
+// // __attribute__((visibility("default")))
+// const char* plugin_init(int queue_size)
+// {
+//     const char* (*plugin_transform)(const char*) = context.process_function;   
+//     return common_plugin_init(plugin_transform, "<plugin_name>", queue_size);
+// }
 
 __attribute__((visibility("default")))
 const char* plugin_fini(void) {

@@ -1,7 +1,9 @@
-#include "plugin_common.h"
+#include "plugin_common.h"  
 #include "plugin_sdk.h"
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
+
 
 // Plugin logic
 static const char* plugin_transform(const char* input) {
@@ -30,6 +32,6 @@ static const char* plugin_transform(const char* input) {
 
 __attribute__((visibility("default")))
 const char* plugin_init(int queue_size) {
-    return common_plugin_init(plugin_transform, "uppercase", queue_size);
+    return common_plugin_init(plugin_transform, "rotator", queue_size);
 }
 
