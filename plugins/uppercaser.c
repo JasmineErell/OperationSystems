@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,6 +27,11 @@ static const char* plugin_transform(const char* input) {
 __attribute__((visibility("default")))
 const char* plugin_init(int queue_size) {
     return common_plugin_init(plugin_transform, "uppercaser", queue_size);
+}
+
+__attribute__((visibility("default")))
+const char* plugin_get_name(void) {
+    return "uppercaser";
 }
 
 

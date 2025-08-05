@@ -8,6 +8,7 @@ static plugin_context_t context;
 // An entry function to thread that processes items from the queue
 void* plugin_consumer_thread(void* arg)
 {
+
     plugin_context_t* context = (plugin_context_t*)arg;
     // Check if the context is initialized
     if (!context) {
@@ -22,23 +23,32 @@ void* plugin_consumer_thread(void* arg)
 
     while (1) {
         char* item = consumer_producer_get(context->queue);
+        fprintf(stderr, "[consumer] Got item: %s\n", item);
 
         if (!item) continue;
 
         int is_end = (strcmp(item, "<END>") == 0);
+        fprintf(stderr, "[consumer] is_end = %d\n", is_end);
 
-        const char* out = is_end ? item : context->process_function(item); //If not <END>, transform it using this plugin's logic 
+        const char* out = is_end ? item : context->process_function(item);
+        fprintf(stderr, "[consumer] out: %s\n", out);
 
-        if (context->next_place_work){
+        if (context->next_place_work) {
+            fprintf(stderr, "[consumer] Calling next_place_work...\n");
             context->next_place_work(out);
+            fprintf(stderr, "[consumer] Returned from next_place_work.\n");
+        } else {
+            if (!is_end) {
+                fprintf(stderr, "[consumer] Freeing output...\n");
+                free((char*)out);
+            }
         }
-        else{
-            free((char*)out);  // cleanup if this is the last plugin
-        }
-        if (is_end){
+
+        free(item);
+
+        if (is_end) {
             break;
         }
-            
     }
     context->finished = 1;
     consumer_producer_signal_finished(context->queue);
@@ -50,7 +60,7 @@ void* plugin_consumer_thread(void* arg)
 void log_error(plugin_context_t* context, const char* message)
 {
     if (context == NULL) {
-        fprintf(stderr, "Error: log_error received NULL context .\n");
+        fprintf(stderr, "Error: log_error received NULL context.\n");
         return;
     }
 
@@ -59,7 +69,9 @@ void log_error(plugin_context_t* context, const char* message)
         return;
     }
 
-    fprintf(stderr, "[ERROR][%s] - %s\n", context->name, message);
+    //SAFELY HANDLE NULL context->name
+    const char* name = (context->name != NULL) ? context->name : "UNKNOWN";
+    fprintf(stderr, "[ERROR][%s] - %s\n", name, message);
 }
 
 void log_info(plugin_context_t* context, const char* message)
@@ -77,11 +89,11 @@ void log_info(plugin_context_t* context, const char* message)
     fprintf(stderr, "[INFO][%s] - %s\n", context->name, message);
 }
 
-__attribute__((visibility("default")))
-const char* plugin_get_name(void)
-{
-    return "Common Plugin";
-}
+// __attribute__((visibility("default")))
+// const char* plugin_get_name(void)
+// {
+//     return "Common Plugin";
+// }
 
 __attribute__((visibility("default")))
 const char* common_plugin_init(const char *(*process_function)(const char *), const char *name, int queue_size)
@@ -130,6 +142,7 @@ const char* common_plugin_init(const char *(*process_function)(const char *), co
         return "pthread_create failed";
     }
 
+
     //finial initialization
     context.initialized = 1;
     log_info(&context, "Plugin initialized successfully");
@@ -146,14 +159,23 @@ const char* common_plugin_init(const char *(*process_function)(const char *), co
 
 __attribute__((visibility("default")))
 const char* plugin_fini(void) {
+    if (!context.initialized) {
+        return "Plugin not initialized";
+    }
+    
+    consumer_producer_put(context.queue, "<END>");
+    
     int res = pthread_join(context.consumer_thread, NULL);
-
     if (res != 0) {
         log_error(&context, "Failed to join plugin thread");
         return "Failed to join plugin thread";
     }
-
+    
     consumer_producer_destroy(context.queue);
+    free(context.queue);  
+    context.queue = NULL;
+    context.initialized = 0;  
+    
     return NULL;
 }
 
@@ -192,7 +214,7 @@ void plugin_attach(const char* (*next_place_work)(const char*))
 __attribute__((visibility("default")))
 const char* plugin_wait_finished(void)
 {
-
+    fprintf(stderr, "plugin_wait_finished called, DEBUG\n");
     if (!context.initialized) {
         log_error(&context, "plugin_wait_finished called before initialization.");
         return "Plugin not initialized";
@@ -200,8 +222,10 @@ const char* plugin_wait_finished(void)
 
     if (context.finished) {
         log_info(&context, "Plugin has already finished processing.");
-        return "Plugin already finished";
+        return NULL;  
     }
+
+    fprintf(stderr, "About to wait. Queue ptr: %p\n", (void*)context.queue);
 
     int res = consumer_producer_wait_finished(context.queue);
     if (res != 0) {
@@ -217,5 +241,8 @@ const char* plugin_wait_finished(void)
 
 
 //Some help functions:
+
+
+//
 
 

@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include "plugin_common.h"
 #include "plugin_sdk.h"
 #include <string.h>
@@ -29,4 +30,9 @@ static const char* plugin_transform(const char* input) {
 __attribute__((visibility("default")))
 const char* plugin_init(int queue_size) {
     return common_plugin_init(plugin_transform, "typewriter", queue_size);
+}
+
+__attribute__((visibility("default")))
+const char* plugin_get_name(void) {
+    return "typewriter";
 }
