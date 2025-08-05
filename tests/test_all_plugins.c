@@ -119,5 +119,106 @@ int main() {
                                   plugin_wait_finished, plugin_attach);
 
     printf("\n[%s] Simple Test Summary: Passed %d / %d\n", TOSTRING(PLUGIN), passed, total);
+    
+// ------------------------------
+// 🔍 ADVANCED TESTS FOR PLUGIN: TOSTRING(PLUGIN)
+// ------------------------------
+
+// Test NULL input
+reset_outputs();
+const char* null_output = plugin_place_work(NULL);
+ASSERT("NULL input should not crash", null_output == NULL);
+
+// Test long string
+reset_outputs();
+char* long_input = malloc(2048);
+memset(long_input, 'x', 2047);
+long_input[2047] = '\0';
+plugin_place_work(long_input);
+free(long_input);
+plugin_place_work("<END>");
+plugin_wait_finished();
+plugin_fini();
+ASSERT("long input processed", output_count == 1);
+
+// Stress test with 1000 items
+const int stress_count = 1000;
+reset_outputs();
+plugin_init(50);
+plugin_attach(capture_output);
+
+for (int i = 0; i < stress_count; ++i) {
+    char buf[64];
+    snprintf(buf, sizeof(buf), "item_%d", i);
+    plugin_place_work(buf);
+}
+plugin_place_work("<END>");
+plugin_wait_finished();
+plugin_fini();
+ASSERT("stress test processed all items", output_count == stress_count);
+
+// Multithreaded input test
+reset_outputs();
+plugin_init(100);
+plugin_attach(capture_output);
+
+pthread_t threads[4];
+void* thread_fn(void* arg) {
+    int base = *(int*)arg;
+    for (int i = 0; i < 100; ++i) {
+        char buf[64];
+        snprintf(buf, sizeof(buf), "thread%d_item%d", base, i);
+        plugin_place_work(buf);
+    }
+    return NULL;
+}
+
+int bases[4] = {0, 1000, 2000, 3000};
+for (int i = 0; i < 4; ++i) {
+    pthread_create(&threads[i], NULL, thread_fn, &bases[i]);
+}
+for (int i = 0; i < 4; ++i) {
+    pthread_join(threads[i], NULL);
+}
+
+plugin_place_work("<END>");
+plugin_wait_finished();
+plugin_fini();
+ASSERT("multithreaded input handled", output_count == 400);
+
+// Graceful shutdown test - wait should block until <END> is sent
+reset_outputs();
+plugin_init(10);
+plugin_attach(capture_output);
+
+volatile int waiter_unblocked = 0;
+pthread_t waiter_thread;
+
+void* waiter_func(void* _) {
+    plugin_wait_finished();
+    waiter_unblocked = 1;
+    return NULL;
+}
+
+pthread_create(&waiter_thread, NULL, waiter_func, NULL);
+usleep(200000); // Let waiter_func run and block
+
+ASSERT("plugin_wait_finished should block before <END>", waiter_unblocked == 0);
+
+// Now trigger shutdown
+plugin_place_work("<END>");
+pthread_join(waiter_thread, NULL);
+ASSERT("plugin_wait_finished unblocked after <END>", waiter_unblocked == 1);
+plugin_fini();
+
+// Ensure immediate return after <END>
+plugin_init(5);
+plugin_attach(capture_output);
+plugin_place_work("<END>");
+const char* err = plugin_wait_finished();
+ASSERT("plugin_wait_finished returns immediately after <END>", err == NULL);
+plugin_fini();
+
+
     return (passed == total) ? 0 : 1;
 }

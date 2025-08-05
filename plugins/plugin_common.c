@@ -164,7 +164,7 @@ const char* plugin_place_work(const char* str)
 
     if (str == NULL) {
         log_error(&context, "plugin_place_work received NULL string.");
-        return "Received NULL string";
+        return NULL;
     }
 
     int result = consumer_producer_put(queue, str);
