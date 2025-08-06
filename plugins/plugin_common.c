@@ -8,14 +8,11 @@ static plugin_context_t context;
 // An entry function to thread that processes items from the queue
 void* plugin_consumer_thread(void* arg)
 {
-
     plugin_context_t* context = (plugin_context_t*)arg;
-    // Check if the context is initialized
     if (!context) {
         fprintf(stderr, "Error: Plugin context is NULL.\n");
         return NULL;
     }
-
     if (!context->initialized) {
         fprintf(stderr, "Error: Plugin context is not initialized.\n");
         return NULL;
@@ -23,39 +20,49 @@ void* plugin_consumer_thread(void* arg)
 
     while (1) {
         char* item = consumer_producer_get(context->queue);
-        fprintf(stderr, "[consumer] Got item: %s\n", item);
-
         if (!item) continue;
 
         int is_end = (strcmp(item, "<END>") == 0);
-        fprintf(stderr, "[consumer] is_end = %d\n", is_end);
-
-        const char* out = is_end ? item : context->process_function(item);
-        fprintf(stderr, "[consumer] out: %s\n", out);
-
-        if (context->next_place_work) {
-            fprintf(stderr, "[consumer] Calling next_place_work...\n");
-            context->next_place_work(out);
-            fprintf(stderr, "[consumer] Returned from next_place_work.\n");
-        } else {
-            if (!is_end) {
-                fprintf(stderr, "[consumer] Freeing output...\n");
-                free((char*)out);
-            }
-        }
-
-        free(item);
-
+        
         if (is_end) {
+            if (context->next_place_work) {
+                context->next_place_work(item);
+            } else {
+                free(item);
+            }
             break;
         }
+
+        // Process the item
+        const char* out = context->process_function(item);
+        
+        if (context->next_place_work) {
+            // Pass to next plugin
+            context->next_place_work(out);
+            // Free original if different from output
+            if (out != item) {
+                free(item);
+            }
+        } else {
+            // Last plugin - print result
+            printf("[logger] %s\n", out);
+            fflush(stdout);
+            
+            // Free strings properly
+            if (out != item) {
+                free((char*)out);
+                free(item);
+            } else {
+                free(item);
+            }
+        }
     }
+
     context->finished = 1;
     consumer_producer_signal_finished(context->queue);
-
     return NULL;
-
 }
+
 
 void log_error(plugin_context_t* context, const char* message)
 {
@@ -98,6 +105,9 @@ void log_info(plugin_context_t* context, const char* message)
 __attribute__((visibility("default")))
 const char* common_plugin_init(const char *(*process_function)(const char *), const char *name, int queue_size)
 {
+   printf("DEBUG: Plugin %s initializing, context address: %p, current name: %s\n", 
+           name, &context, context.name ? context.name : "NULL");
+
     memset(&context, 0, sizeof context); //Taking care of all fields
     context.name = name;
     context.process_function = process_function;
@@ -214,7 +224,6 @@ void plugin_attach(const char* (*next_place_work)(const char*))
 __attribute__((visibility("default")))
 const char* plugin_wait_finished(void)
 {
-    fprintf(stderr, "plugin_wait_finished called, DEBUG\n");
     if (!context.initialized) {
         log_error(&context, "plugin_wait_finished called before initialization.");
         return "Plugin not initialized";
@@ -224,8 +233,6 @@ const char* plugin_wait_finished(void)
         log_info(&context, "Plugin has already finished processing.");
         return NULL;  
     }
-
-    fprintf(stderr, "About to wait. Queue ptr: %p\n", (void*)context.queue);
 
     int res = consumer_producer_wait_finished(context.queue);
     if (res != 0) {
@@ -239,10 +246,5 @@ const char* plugin_wait_finished(void)
 }
 
 
-
-//Some help functions:
-
-
-//
 
 

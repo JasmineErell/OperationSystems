@@ -112,7 +112,6 @@ int consumer_producer_put(consumer_producer_t* queue, const char*item)
     
     while (queue->count == queue->capacity) {
         if (!warned) {
-            fprintf(stderr, "[Producer] Waiting for space in the queue...\n");
             warned = 1; // Set flag to avoid multiple warnings
         }
         monitor_wait(&queue->not_full_monitor, &queue->shared_mutex);
@@ -121,12 +120,6 @@ int consumer_producer_put(consumer_producer_t* queue, const char*item)
     queue->items[queue->tail] = strdup(item); 
     queue->tail = (queue->tail + 1) % (queue->capacity); // Cicly 
     queue->count++;
-
-    fprintf(stderr,
-            "[%ld][PUT] stored \"%s\"  cnt=%d h=%d t=%d\n",
-            (long)pthread_self(), item,
-            queue->count, queue->head, queue->tail);
-
     monitor_signal(&queue->not_empty_monitor); // Signal that the queue is not empty
     pthread_mutex_unlock(&queue->shared_mutex);
     return 0;
@@ -151,7 +144,6 @@ char* consumer_producer_get(consumer_producer_t* queue)
     // Keep waiting if the queue is empty (handles races conditions)
     while (queue->count == 0 && !queue->finished) {
         if (!warned) {
-            fprintf(stderr, "[Consumer] Waiting for items in the queue...\n");
             warned = 1; // Set flag to avoid multiple warnings
         }
         monitor_wait(&queue->not_empty_monitor, &queue->shared_mutex);
@@ -166,11 +158,6 @@ char* consumer_producer_get(consumer_producer_t* queue)
     item = queue->items[queue->head]; // Get the item
     queue->head = (queue->head + 1) % (queue->capacity); // Cycle
     queue->count--;
-
-    fprintf(stderr,
-            "[%ld][GET] took   \"%s\"  cnt=%d h=%d t=%d\n",
-            (long)pthread_self(), item,
-            queue->count, queue->head, queue->tail);
 
     monitor_signal(&queue->not_full_monitor); // Signal that the queue is not full for the producer
     pthread_mutex_unlock(&queue->shared_mutex);
@@ -203,7 +190,6 @@ int consumer_producer_wait_finished(consumer_producer_t* queue)
 
     pthread_mutex_lock(&queue->shared_mutex);
     while (!queue->finished) { // Wait until finished
-        printf("[Consumer] Waiting for processing to finish...\n");
         monitor_wait(&queue->finished_monitor, &queue->shared_mutex);
     }
     pthread_mutex_unlock(&queue->shared_mutex);
