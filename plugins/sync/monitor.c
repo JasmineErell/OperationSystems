@@ -1,12 +1,11 @@
 #include "monitor.h"
 #include <stdio.h>
 
-//When calling it remember to crate space!
 int monitor_init(monitor_t* monitor)
 {
 if (monitor == NULL) {
     fprintf(stderr, "Error: monitor pointer is NULL.\n");
-    return -1; // Monitor pointer is NULL
+    return -1; 
 }
 
 if (pthread_cond_init(&monitor->condition, NULL) != 0)
@@ -18,7 +17,6 @@ monitor->initialized = 1;
 return 0;
 }
 
-//When calling it remember to free space!
 void monitor_destroy(monitor_t* monitor)
 {
     if (monitor == NULL) {
@@ -28,10 +26,10 @@ void monitor_destroy(monitor_t* monitor)
 
     if (!monitor->initialized) {
         fprintf(stderr, "Error: monitor is not initialized.\n");
-        return; // Monitor was not initialized
+        return; 
     }
-    monitor->initialized = 0; // Mark as uninitialized
-    pthread_cond_destroy(&monitor->condition); // Destroy the condition variable
+    monitor->initialized = 0; 
+    pthread_cond_destroy(&monitor->condition); 
 }
 
 void monitor_signal(monitor_t* monitor)
@@ -42,7 +40,7 @@ void monitor_signal(monitor_t* monitor)
         return;  
     }
 
-    pthread_cond_signal(&monitor->condition); // Signal the condition variable
+    pthread_cond_signal(&monitor->condition); 
     
 }
 
@@ -59,12 +57,12 @@ int monitor_wait(monitor_t* monitor, pthread_mutex_t* shared_mutex)
 {
     if (monitor == NULL) {
         fprintf(stderr, "Error: monitor pointer is NULL.\n");
-        return -1; // Monitor pointer is NULL
+        return -1; 
     }
 
     if (shared_mutex == NULL) {
         fprintf(stderr, "Error: shared mutex pointer is NULL.\n");
-        return -1; // Shared mutex pointer is NULL
+        return -1; 
     }   
 
     return pthread_cond_wait(&monitor->condition, shared_mutex);

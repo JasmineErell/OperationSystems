@@ -45,8 +45,11 @@ void* plugin_consumer_thread(void* arg)
             }
         } else {
             // Last plugin - print result
-            printf("[logger] %s\n", out);
+            if (strcmp(context->name, "typewriter") != 0) {
+            printf("[%s] %s\n", context->name, out);
             fflush(stdout);
+            }
+            
             
             // Free strings properly
             if (out != item) {
@@ -96,11 +99,7 @@ void log_info(plugin_context_t* context, const char* message)
     fprintf(stderr, "[INFO][%s] - %s\n", context->name, message);
 }
 
-// __attribute__((visibility("default")))
-// const char* plugin_get_name(void)
-// {
-//     return "Common Plugin";
-// }
+
 
 __attribute__((visibility("default")))
 const char* common_plugin_init(const char *(*process_function)(const char *), const char *name, int queue_size)
@@ -160,12 +159,6 @@ const char* common_plugin_init(const char *(*process_function)(const char *), co
 
 }
 
-// // __attribute__((visibility("default")))
-// const char* plugin_init(int queue_size)
-// {
-//     const char* (*plugin_transform)(const char*) = context.process_function;   
-//     return common_plugin_init(plugin_transform, "<plugin_name>", queue_size);
-// }
 
 __attribute__((visibility("default")))
 const char* plugin_fini(void) {

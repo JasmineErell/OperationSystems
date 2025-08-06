@@ -12,13 +12,19 @@ static const char* plugin_transform(const char* input) {
     size_t len = strlen(input);
     if (len == 0) return strdup("");
 
-    printf("[typewriter] ");
-    fflush(stdout);
+    // Print "[typewriter] " with typewriter effect
+    const char* prefix = "[typewriter] ";
+    for (size_t i = 0; prefix[i] != '\0'; ++i) {
+        printf("%c", prefix[i]);
+        fflush(stdout);
+        usleep(100000);  // 100ms delay for each character in prefix
+    }
 
+    // Print the input string with typewriter effect
     for (size_t i = 0; i < len; ++i) {
         printf("%c", input[i]);
         fflush(stdout);
-        usleep(100000);  
+        usleep(100000);  // 100ms delay for each character in input
     }
 
     printf("\n");  

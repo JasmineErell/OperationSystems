@@ -88,8 +88,8 @@ void consumer_producer_destroy(consumer_producer_t* queue)
 
     // Free items array
     free(queue->items);
-    queue->items = NULL; // Prevent dangling pointer
-    queue->initialized = 0; // Mark as uninitialized
+    queue->items = NULL; 
+    queue->initialized = 0; 
 }
 
 int consumer_producer_put(consumer_producer_t* queue, const char*item)
@@ -120,7 +120,7 @@ int consumer_producer_put(consumer_producer_t* queue, const char*item)
     queue->items[queue->tail] = strdup(item); 
     queue->tail = (queue->tail + 1) % (queue->capacity); // Cicly 
     queue->count++;
-    monitor_signal(&queue->not_empty_monitor); // Signal that the queue is not empty
+    monitor_signal(&queue->not_empty_monitor); 
     pthread_mutex_unlock(&queue->shared_mutex);
     return 0;
 }
@@ -140,8 +140,7 @@ char* consumer_producer_get(consumer_producer_t* queue)
     }
 
     // Critical part 
-    pthread_mutex_lock(&queue->shared_mutex); //Prevent race conditions while waiting
-    // Keep waiting if the queue is empty (handles races conditions)
+    pthread_mutex_lock(&queue->shared_mutex); 
     while (queue->count == 0 && !queue->finished) {
         if (!warned) {
             warned = 1; // Set flag to avoid multiple warnings
@@ -165,7 +164,7 @@ char* consumer_producer_get(consumer_producer_t* queue)
     return item;
 }
 
-//We will get it when the user writes <END>
+
 void consumer_producer_signal_finished(consumer_producer_t* queue)
 {
     if (queue == NULL) {
@@ -174,7 +173,7 @@ void consumer_producer_signal_finished(consumer_producer_t* queue)
     }
 
     pthread_mutex_lock(&queue->shared_mutex);
-    queue->finished = 1; // Set the finished flag
+    queue->finished = 1; 
     monitor_signal(&queue->finished_monitor);
     pthread_mutex_unlock(&queue->shared_mutex);
     
@@ -189,7 +188,7 @@ int consumer_producer_wait_finished(consumer_producer_t* queue)
     }
 
     pthread_mutex_lock(&queue->shared_mutex);
-    while (!queue->finished) { // Wait until finished
+    while (!queue->finished) { 
         monitor_wait(&queue->finished_monitor, &queue->shared_mutex);
     }
     pthread_mutex_unlock(&queue->shared_mutex);
