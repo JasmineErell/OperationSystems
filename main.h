@@ -6,6 +6,7 @@ typedef const char* (*plugin_fini_func_t)(void);
 typedef const char* (*plugin_place_work_func_t)(const char*);
 typedef void (*plugin_attach_func_t)(const char* (*)(const char*));
 typedef const char* (*plugin_wait_finished_func_t)(void);
+void cleanup_temp_plugin_files();
 
 typedef struct {
     plugin_init_func_t init;

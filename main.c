@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <dlfcn.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #define NUM_VALID_PLUGINS (sizeof(valid_plugins) / sizeof(valid_plugins[0]))
 
@@ -14,6 +15,7 @@
 // main()
 // --------------------------------------
 int main(int argc, char** argv) {
+    atexit(cleanup_temp_plugin_files);
     check_valid_args(argc, argv);
 
     int queue_size = atoi(argv[1]);
@@ -26,7 +28,6 @@ int main(int argc, char** argv) {
     iterate_input_over_plugins(&plugin_handlers[0]);
     wait_for_all_plugins_to_finish(plugin_handlers, plugin_count);
     clean_plugins(plugin_handlers, plugin_count);
-    printf("Pipeline shutdown complete\n");
     return 0;
 }
 
@@ -101,6 +102,8 @@ void print_usage(void) {
 }
 
 //Creating the plugin handles
+//Replace your create_plugins_handle function with this version:
+
 plugin_handle_t* create_plugins_handle(char** plugin_names, int plugin_count, int queue_size) {
     plugin_handle_t* plugins = calloc(plugin_count, sizeof(plugin_handle_t));
     if (!plugins) {
@@ -108,28 +111,85 @@ plugin_handle_t* create_plugins_handle(char** plugin_names, int plugin_count, in
         exit(1);
     }
 
-    for (int i = 0; i < plugin_count; ++i) {
-        char filename[256];
-        snprintf(filename, sizeof(filename), "output/%s.so", plugin_names[i]);
+    // Count instances of each plugin type
+    int instance_counters[NUM_VALID_PLUGINS] = {0};
 
-        void* handle = dlopen(filename, RTLD_NOW | RTLD_LOCAL);
+    for (int i = 0; i < plugin_count; ++i) {
+        // Find which plugin type this is
+        int plugin_type_index = -1;
+        for (size_t j = 0; j < NUM_VALID_PLUGINS; ++j) {
+            if (strcmp(plugin_names[i], valid_plugins[j]) == 0) {
+                plugin_type_index = j;
+                break;
+            }
+        }
+
+        // Increment instance counter for this plugin type
+        instance_counters[plugin_type_index]++;
+        int instance_num = instance_counters[plugin_type_index];
+
+        char original_filename[256];
+        char actual_filename[256];
+        
+        snprintf(original_filename, sizeof(original_filename), "output/%s.so", plugin_names[i]);
+        
+        if (instance_num == 1) {
+            // First instance - use original file
+            strcpy(actual_filename, original_filename);
+        } else {
+            // Additional instances - create temporary copy with unique name
+            snprintf(actual_filename, sizeof(actual_filename), "output/%s_temp_%d_%d.so", 
+                     plugin_names[i], getpid(), instance_num);
+            
+            // Copy the original file to create a unique instance
+            FILE* src = fopen(original_filename, "rb");
+            FILE* dst = fopen(actual_filename, "wb");
+            
+            if (!src || !dst) {
+                fprintf(stderr, "[ERROR] Failed to create temporary plugin copy\n");
+                if (src) fclose(src);
+                if (dst) fclose(dst);
+                
+                // Cleanup previously allocated plugins
+                for (int j = 0; j < i; ++j) {
+                    if (plugins[j].handle) {
+                        dlclose(plugins[j].handle);
+                    }
+                }
+                free(plugins);
+                exit(1);
+            }
+            
+            // Copy file contents
+            char buffer[4096];
+            size_t bytes;
+            while ((bytes = fread(buffer, 1, sizeof(buffer), src)) > 0) {
+                fwrite(buffer, 1, bytes, dst);
+            }
+            
+            fclose(src);
+            fclose(dst);
+        }
+
+        // Load the .so file (original or copy)
+        void* handle = dlopen(actual_filename, RTLD_NOW | RTLD_LOCAL);
         if (!handle) {
-            fprintf(stderr, "[ERROR] dlopen failed for %s: %s\n", filename, dlerror());
+            fprintf(stderr, "[ERROR] dlopen failed for %s: %s\n", actual_filename, dlerror());
             print_usage();
 
+            // Cleanup
             for (int j = 0; j < i; ++j) {
                 if (plugins[j].handle) {
                     dlclose(plugins[j].handle);
                 }
             }
-
             free(plugins);
             exit(1);
         }
 
         plugin_handle_t* plugin = &plugins[i];
         plugin->handle = handle;
-        plugin->name = plugin_names[i];
+        plugin->name = plugin_names[i];  // Keep original name for output
         plugin->init = dlsym(handle, "plugin_init");
         plugin->fini = dlsym(handle, "plugin_fini");
         plugin->place_work = dlsym(handle, "plugin_place_work");
@@ -251,6 +311,13 @@ void clean_plugins(plugin_handle_t* plugins, int plugin_count) {
     }
 
     free(plugins);  // Free the array of structs
+}
+
+// Cleanup temporary plugin files created during the run - helps me with double plugined!
+void cleanup_temp_plugin_files() {
+    char cleanup_cmd[256];
+    snprintf(cleanup_cmd, sizeof(cleanup_cmd), "rm -f output/*_temp_%d_*.so", getpid());
+    system(cleanup_cmd);
 }
 
 
