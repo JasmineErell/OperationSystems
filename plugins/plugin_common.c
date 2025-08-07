@@ -181,7 +181,7 @@ const char* common_plugin_init(const char *(*process_function)(const char *), co
 
     //finial initialization
     context->initialized = 1;
-    log_info(context, "Plugin initialized successfully");
+    //log_info(context, "Plugin initialized successfully");
     return NULL;
 }
 
@@ -237,7 +237,7 @@ const char* plugin_place_work(const char* str)
         return "Failed to put item in queue";
     }
 
-    log_info(context, "Placed work in queue.");
+    //log_info(context, "Placed work in queue.");
     return NULL;
 }
 
@@ -252,7 +252,7 @@ void plugin_attach(const char* (*next_place_work)(const char*))
 
     if (context->initialized == 1) {
         context->next_place_work = next_place_work;
-        log_info(context, "Next place_work function attached successfully.");
+        //log_info(context, "Next place_work function attached successfully.");
     } else {
         log_error(context, "Cannot attach next place_work function: plugin not initialized.");
     }
@@ -279,7 +279,7 @@ const char* plugin_wait_finished(void)
     }
 
     context->finished = 1;
-    log_info(context, "Plugin finished processing successfully.");
+    //log_info(context, "Plugin finished processing successfully.");
     return NULL;
 }
 
