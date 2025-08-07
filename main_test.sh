@@ -283,7 +283,7 @@ run_test "2.3 Double flipper - flipper → flipper → logger" 0 "./output/analy
 run_test "2.4 Double logger - uppercaser → logger → logger" 0 "./output/analyzer 10 uppercaser logger logger" "\\[logger\\] HELLO" "hello\n<END>" 8
 
 # Complex mixed chains
-run_test "2.5 Mixed chain - uppercaser → rotator → flipper → logger" 0 "./output/analyzer 12 uppercaser rotator flipper logger" "\\[logger\\] LLOHE" "hello\n<END>" 10
+run_test "2.5 Mixed chain - uppercaser → rotator → flipper → logger" 0 "./output/analyzer 12 uppercaser rotator flipper logger" "\\[logger\\] LLEHO" "hello\n<END>" 10
 
 run_test "2.6 Long chain - uppercaser → rotator → rotator → flipper → expander → logger" 0 "./output/analyzer 15 uppercaser rotator rotator flipper expander logger" "\\[logger\\]" "test\n<END>" 10
 
