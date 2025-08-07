@@ -28,6 +28,7 @@ int main(int argc, char** argv) {
     iterate_input_over_plugins(&plugin_handlers[0]);
     wait_for_all_plugins_to_finish(plugin_handlers, plugin_count);
     clean_plugins(plugin_handlers, plugin_count);
+    printf("Pipeline shutdown complete\n");
     return 0;
 }
 
