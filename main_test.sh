@@ -410,29 +410,31 @@ run_test "2.8 Multiple inputs + complex chain" 0 "./output/analyzer 20 uppercase
 run_test "2.9 Large queue test" 0 "./output/analyzer 100 uppercaser flipper logger" "\\[logger\\] DLROW" "world\n<END>" 8
 
 # ===================================================================
-# CATEGORY 3: INVALID INPUT TESTS
+# CATEGORY 3: INVALID INPUT TESTS  (expects detailed help text)
 # ===================================================================
 echo ""
 print_category "CATEGORY 3: Invalid Input Tests"
 echo ""
 
-run_test "3.1 No arguments" 1 "./output/analyzer" "Usage:" "" 3
+# Expect the new detailed help printed by print_invalid_input() on STDOUT.
+# We match a unique line from that block to ensure it's shown.
+run_test "3.1 No arguments" 1 "./output/analyzer" "Available plugins:" "" 3
 
-run_test "3.2 Missing plugins" 1 "./output/analyzer 10" "Usage:" "" 3
+run_test "3.2 Missing plugins" 1 "./output/analyzer 10" "Available plugins:" "" 3
 
-run_test "3.3 Invalid queue size - non-numeric" 1 "./output/analyzer abc logger" "Usage:" "" 3
+run_test "3.3 Invalid queue size - non-numeric" 1 "./output/analyzer abc logger" "Available plugins:" "" 3
 
-run_test "3.4 Invalid queue size - negative" 1 "./output/analyzer -5 logger" "Usage:" "" 3
+run_test "3.4 Invalid queue size - negative" 1 "./output/analyzer -5 logger" "Available plugins:" "" 3
 
-run_test "3.5 Invalid queue size - zero" 1 "./output/analyzer 0 logger" "Usage:" "" 3
+run_test "3.5 Invalid queue size - zero" 1 "./output/analyzer 0 logger" "Available plugins:" "" 3
 
-run_test "3.6 Invalid queue size - leading zero" 1 "./output/analyzer 01 logger" "Usage:" "" 3
+run_test "3.6 Invalid queue size - leading zero" 1 "./output/analyzer 01 logger" "Available plugins:" "" 3
 
-run_test "3.7 Non-existent plugin" 1 "./output/analyzer 10 nonexistent" "" "" 3
+run_test "3.7 Non-existent plugin" 1 "./output/analyzer 10 nonexistent" "Available plugins:" "" 3
 
-run_test "3.8 Mix of valid and invalid plugins" 1 "./output/analyzer 10 logger badplugin uppercaser" "" "" 3
+run_test "3.8 Mix of valid and invalid plugins" 1 "./output/analyzer 10 logger badplugin uppercaser" "Available plugins:" "" 3
 
-run_test "3.9 Invalid queue size - decimal" 1 "./output/analyzer 10.5 logger" "Usage:" "" 3
+run_test "3.9 Invalid queue size - decimal" 1 "./output/analyzer 10.5 logger" "Available plugins:" "" 3
 
 # ===================================================================
 # CATEGORY 4: INITIALIZATION AND GRACEFUL SHUTDOWN

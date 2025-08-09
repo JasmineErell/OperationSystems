@@ -16,7 +16,10 @@
 // --------------------------------------
 int main(int argc, char** argv) {
     atexit(cleanup_temp_plugin_files);
-    check_valid_args(argc, argv);
+    if (check_valid_args(argc, argv) == 0) {
+        print_invalid_input();
+        exit(1);
+    }
 
     int queue_size = atoi(argv[1]);
     int plugin_count = argc - 2;
@@ -47,24 +50,19 @@ static const char* valid_plugins[] = {
 };
 
 
-void check_valid_args(int argc, char** argv) {
+int check_valid_args(int argc, char** argv) {
     if (argc < 3) {
-        fprintf(stderr, "[ERROR] Not enough arguments.\n");
-        print_usage();
-        exit(1);
+        return 0;
     }
 
     if (!is_arg_starts_with_number(argv[1])) {
-        fprintf(stderr, "[ERROR] Invalid queue size: must be a positive integer with no leading zeros.\n");
-        print_usage();
-        exit(1);
+        return 0;
     }
 
     if (!are_valid_plugins(argc, argv)) {
-        fprintf(stderr, "[ERROR] Invalid plugin name(s): must be one or more from the supported list.\n");
-        print_usage();
-        exit(1);
+        return 0;
     }
+    return 1;
 }
 
 int is_arg_starts_with_number(const char* str) {
@@ -95,12 +93,27 @@ int are_valid_plugins(int argc, char** argv) {
     return 1;
 }
 
-void print_usage(void) {
-    printf("Usage: ./analyzer <queue_size> <plugin1> <plugin2> ... <pluginN>\n");
-    printf("Available plugins: logger, typewriter, uppercaser, rotator, flipper, expander\n");
-    printf("Example: ./analyzer 10 logger typewriter\n");
+void print_invalid_input(void) {
+    fprintf(stderr, "Invalid input.\n");
 
+    printf("Usage: ./analyzer <queue_size> <plugin1> <plugin2> ... <pluginN>\n\n");
+
+    printf("Arguments:\n");
+    printf("  queue_size   Maximum number of items in each plugin's queue\n");
+    printf("  plugin1..N   Names of plugins to load (without .so extension)\n\n");
+
+    printf("Available plugins:\n");
+    printf("  logger     - Logs all strings that pass through\n");
+    printf("  typewriter - Simulates typewriter effect with delays\n");
+    printf("  uppercaser - Converts strings to uppercase\n");
+    printf("  rotator    - Move every character to the right. Last character moves to the beginning.\n");
+    printf("  flipper    - Reverses the order of characters\n");
+    printf("  expander   - Expands each character with spaces\n\n");
+
+    printf("Example:\n");
+    printf("  ./analyzer 20 uppercaser rotator logger\n");
 }
+
 
 //Creating the plugin handles
 //Replace your create_plugins_handle function with this version:
@@ -176,8 +189,7 @@ plugin_handle_t* create_plugins_handle(char** plugin_names, int plugin_count, in
         void* handle = dlopen(actual_filename, RTLD_NOW | RTLD_LOCAL);
         if (!handle) {
             fprintf(stderr, "[ERROR] dlopen failed for %s: %s\n", actual_filename, dlerror());
-            print_usage();
-
+            
             // Cleanup
             for (int j = 0; j < i; ++j) {
                 if (plugins[j].handle) {
