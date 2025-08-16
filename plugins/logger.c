@@ -9,6 +9,8 @@
 //Plugin logic
 static const char* plugin_transform(const char* input) {
     if (input == NULL) return NULL;
+    fprintf(stdout, "[logger] %s\n", input);
+    fflush(stdout);
     return strdup(input); 
 }
 

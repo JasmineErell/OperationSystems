@@ -1,7 +1,7 @@
 #define _GNU_SOURCE
 
 #include "plugin_common.h"  
-#include "plugin_sdk.h"
+//#include "plugin_sdk.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>

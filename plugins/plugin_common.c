@@ -40,29 +40,19 @@ void* plugin_consumer_thread(void* arg)
         const char* out = context->process_function(item);
         
         if (context->next_place_work) {
-            // Pass to next plugin
-            context->next_place_work(out);
-            // Free original if different from output
-            if (out != item) {
-                free(item);
-            }
+        // Not the last plugin → pass output to next
+        context->next_place_work(out);
+        if (out != item) {
+            free(item);
+        }
         } else {
-            // Last plugin - print result
-            if (strcmp(context->name, "typewriter") != 0) {
-            printf("[%s] %s\n", context->name, out);
-            fflush(stdout);
-            }
-            
-            
-            // Free strings properly
+            // Last plugin → no printing, just cleanup
             if (out != item) {
                 free((char*)out);
-                free(item);
-            } else {
-                free(item);
             }
+            free(item);
         }
-    }
+        }
 
     context->finished = 1;
     consumer_producer_signal_finished(context->queue);
@@ -268,7 +258,7 @@ const char* plugin_wait_finished(void)
     }
 
     if (context->finished) {
-        log_info(context, "Plugin has already finished processing.");
+        //log_info(context, "Plugin has already finished processing.");
         return NULL;
     }
 
