@@ -28,7 +28,7 @@ mkdir -p output
 
 # Build main application
 print_status "Building main application..."
-gcc -o analyzer main.c main.h -ldl -lpthread || {
+gcc -o output/analyzer main.c -ldl -lpthread || {
     print_error "Failed to build main application"
     exit 1
 }
