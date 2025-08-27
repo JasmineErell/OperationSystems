@@ -10,10 +10,6 @@
 #define NUM_VALID_PLUGINS (sizeof(valid_plugins) / sizeof(valid_plugins[0]))
 
 
-
-// --------------------------------------
-// main()
-// --------------------------------------
 int main(int argc, char** argv) {
     atexit(cleanup_temp_plugin_files);
     if (check_valid_args(argc, argv) == 0) {
@@ -40,14 +36,14 @@ int main(int argc, char** argv) {
 
 
 // Valid plugin names (must match those supported by your project)
-static const char* valid_plugins[] = {
-    "logger",
-    "typewriter",
-    "uppercaser",
-    "rotator",
-    "flipper",
-    "expander"
-};
+// static const char* valid_plugins[] = {
+//     "logger",
+//     "typewriter",
+//     "uppercaser",
+//     "rotator",
+//     "flipper",
+//     "expander"
+// };
 
 
 int check_valid_args(int argc, char** argv) {
@@ -59,9 +55,7 @@ int check_valid_args(int argc, char** argv) {
         return 0;
     }
 
-    if (!are_valid_plugins(argc, argv)) {
-        return 0;
-    }
+
     return 1;
 }
 
@@ -79,19 +73,19 @@ int is_arg_starts_with_number(const char* str) {
     return 1;
 }
 
-int is_valid_plugin_name(const char* name) {
-    for (size_t i = 0; i < NUM_VALID_PLUGINS; ++i) {
-        if (strcmp(name, valid_plugins[i]) == 0) return 1;
-    }
-    return 0;
-}
+// int is_valid_plugin_name(const char* name) {
+//     for (size_t i = 0; i < NUM_VALID_PLUGINS; ++i) {
+//         if (strcmp(name, valid_plugins[i]) == 0) return 1;
+//     }
+//     return 0;
+// }
 
-int are_valid_plugins(int argc, char** argv) {
-    for (int i = 2; i < argc; ++i) {
-        if (!is_valid_plugin_name(argv[i])) return 0;
-    }
-    return 1;
-}
+// int are_valid_plugins(int argc, char** argv) {
+//     for (int i = 2; i < argc; ++i) {
+//         if (!is_valid_plugin_name(argv[i])) return 0;
+//     }
+//     return 1;
+// }
 
 void print_invalid_input(void) {
     fprintf(stderr, "Invalid input.\n");
@@ -125,76 +119,54 @@ plugin_handle_t* create_plugins_handle(char** plugin_names, int plugin_count, in
         exit(1);
     }
 
-    // Count instances of each plugin type
-    int instance_counters[NUM_VALID_PLUGINS] = {0};
-
     for (int i = 0; i < plugin_count; ++i) {
-        // Find which plugin type this is
-        int plugin_type_index = -1;
-        for (size_t j = 0; j < NUM_VALID_PLUGINS; ++j) {
-            if (strcmp(plugin_names[i], valid_plugins[j]) == 0) {
-                plugin_type_index = j;
-                break;
+        // Count how many times this plugin has already appeared (before this point)
+        int instance_num = 1;
+        for (int j = 0; j < i; ++j) {
+            if (strcmp(plugin_names[i], plugin_names[j]) == 0) {
+                instance_num++;
             }
         }
 
-        // Increment instance counter for this plugin type
-        instance_counters[plugin_type_index]++;
-        int instance_num = instance_counters[plugin_type_index];
-
         char original_filename[256];
         char actual_filename[256];
-        
         snprintf(original_filename, sizeof(original_filename), "output/%s.so", plugin_names[i]);
-        
+
         if (instance_num == 1) {
-            // First instance - use original file
             strcpy(actual_filename, original_filename);
         } else {
-            // Additional instances - create temporary copy with unique name
-            snprintf(actual_filename, sizeof(actual_filename), "output/%s_temp_%d_%d.so", 
+            snprintf(actual_filename, sizeof(actual_filename), "output/%s_temp_%d_%d.so",
                      plugin_names[i], getpid(), instance_num);
-            
-            // Copy the original file to create a unique instance
+
             FILE* src = fopen(original_filename, "rb");
             FILE* dst = fopen(actual_filename, "wb");
-            
+
             if (!src || !dst) {
                 fprintf(stderr, "[ERROR] Failed to create temporary plugin copy\n");
                 if (src) fclose(src);
                 if (dst) fclose(dst);
-                
-                // Cleanup previously allocated plugins
                 for (int j = 0; j < i; ++j) {
-                    if (plugins[j].handle) {
-                        dlclose(plugins[j].handle);
-                    }
+                    if (plugins[j].handle) dlclose(plugins[j].handle);
                 }
                 free(plugins);
                 exit(1);
             }
-            
-            // Copy file contents
+
             char buffer[4096];
             size_t bytes;
             while ((bytes = fread(buffer, 1, sizeof(buffer), src)) > 0) {
                 fwrite(buffer, 1, bytes, dst);
             }
-            
+
             fclose(src);
             fclose(dst);
         }
 
-        // Load the .so file (original or copy)
         void* handle = dlopen(actual_filename, RTLD_NOW | RTLD_LOCAL);
         if (!handle) {
             fprintf(stderr, "[ERROR] dlopen failed for %s: %s\n", actual_filename, dlerror());
-            
-            // Cleanup
             for (int j = 0; j < i; ++j) {
-                if (plugins[j].handle) {
-                    dlclose(plugins[j].handle);
-                }
+                if (plugins[j].handle) dlclose(plugins[j].handle);
             }
             free(plugins);
             exit(1);
@@ -202,7 +174,7 @@ plugin_handle_t* create_plugins_handle(char** plugin_names, int plugin_count, in
 
         plugin_handle_t* plugin = &plugins[i];
         plugin->handle = handle;
-        plugin->name = plugin_names[i];  // Keep original name for output
+        plugin->name = plugin_names[i];
         plugin->init = dlsym(handle, "plugin_init");
         plugin->fini = dlsym(handle, "plugin_fini");
         plugin->place_work = dlsym(handle, "plugin_place_work");
@@ -212,11 +184,8 @@ plugin_handle_t* create_plugins_handle(char** plugin_names, int plugin_count, in
         if (!plugin->init || !plugin->fini || !plugin->place_work ||
             !plugin->attach || !plugin->wait_finished) {
             fprintf(stderr, "[ERROR] dlsym error in %s: %s\n", plugin_names[i], dlerror());
-
             for (int j = 0; j <= i; ++j) {
-                if (plugins[j].handle) {
-                    dlclose(plugins[j].handle);
-                }
+                if (plugins[j].handle) dlclose(plugins[j].handle);
             }
             free(plugins);
             exit(1);
@@ -225,7 +194,6 @@ plugin_handle_t* create_plugins_handle(char** plugin_names, int plugin_count, in
 
     return plugins;
 }
-
 
 
 // After creating plugin handles, we need to init each
