@@ -12,7 +12,7 @@ static const char* plugin_transform(const char* input) {
     size_t len_word = strlen(input);
     size_t len_spaces = len_word-1;
 
-    // Edge case: empty or single character string doesn't need rotation
+    // Edge casempty or single character string doesn't need expanding
     if (len_word <= 1) {
         return strdup(input);
     }

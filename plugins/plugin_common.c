@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <string.h>
 
-//static plugin_context_t context;
 
 static plugin_context_t* context = NULL;
 
@@ -40,7 +39,7 @@ void* plugin_consumer_thread(void* arg)
         const char* out = context->process_function(item);
         
         if (context->next_place_work) {
-        // Not the last plugin → pass output to next
+        // Not the last plugin - > pass output to next
         context->next_place_work(out);
         if (out != item) {
             free(item);
@@ -98,7 +97,7 @@ void log_info(plugin_context_t* ctx, const char* message)
 __attribute__((visibility("default")))
 const char* common_plugin_init(const char *(*process_function)(const char *), const char *name, int queue_size)
 {
-    // NEW: Allocate memory for this instance's context - JUST TRYING
+    // allocate memory for this instance's context - JUST TRYING
     context = malloc(sizeof(plugin_context_t));
     if (!context) {
         fprintf(stderr, "[ERROR] Failed to allocate plugin context\n");
@@ -112,7 +111,6 @@ const char* common_plugin_init(const char *(*process_function)(const char *), co
 
     if (!process_function) {
         log_error(context, "common_plugin_init: process_function is NULL");
-        // NEW: Clean up allocated memory on error
         free(context);
         context = NULL;
         return "process_function is NULL";
@@ -120,7 +118,6 @@ const char* common_plugin_init(const char *(*process_function)(const char *), co
 
     if (!name) {
         log_error(context, "common_plugin_init: plugin name is NULL");
-        // NEW: Clean up allocated memory on error
         free(context);
         context = NULL;
         return "plugin name is NULL";
@@ -129,7 +126,6 @@ const char* common_plugin_init(const char *(*process_function)(const char *), co
 
     if (queue_size <= 0) {
         log_error(context, "common_plugin_init: queue_size must be > 0");
-        // NEW: Clean up allocated memory on error
         free(context);
         context = NULL;
         return "queue_size must be > 0";
@@ -139,7 +135,6 @@ const char* common_plugin_init(const char *(*process_function)(const char *), co
     context->queue = malloc(sizeof(*context->queue));
     if (!context->queue) {
         log_error(context, "malloc(queue) failed");
-        // NEW: Clean up allocated memory on error
         free(context);
         context = NULL;
         return "malloc failed";
@@ -150,7 +145,6 @@ const char* common_plugin_init(const char *(*process_function)(const char *), co
         log_error(context, "consumer_producer_init failed");
         consumer_producer_destroy(context->queue);
         free(context->queue);
-        // NEW: Clean up allocated memory on error
         free(context);
         context = NULL;
         return "queue init failed";
@@ -161,8 +155,6 @@ const char* common_plugin_init(const char *(*process_function)(const char *), co
         log_error(context, "pthread_create failed");
         consumer_producer_destroy(context->queue);
         free(context->queue);
-
-        // NEW: Clean up allocated memory on error
         free(context);
         context = NULL;
         return "pthread_create failed";
@@ -196,8 +188,6 @@ const char* plugin_fini(void) {
     
     consumer_producer_destroy(context->queue);
     free(context->queue);
-    
-    // NEW: Free the context itself and reset pointer
     free(context);
     context = NULL;
     
@@ -234,7 +224,6 @@ const char* plugin_place_work(const char* str)
 __attribute__((visibility("default")))
 void plugin_attach(const char* (*next_place_work)(const char*))
 {
-    // NEW: Check if context pointer is valid
     if (!context) {
         fprintf(stderr, "[ERROR] Cannot attach: plugin not initialized\n");
         return;
@@ -251,7 +240,6 @@ void plugin_attach(const char* (*next_place_work)(const char*))
 __attribute__((visibility("default")))
 const char* plugin_wait_finished(void)
 {
-    // CHANGED: Check if context pointer is valid
     if (!context || !context->initialized) {
         fprintf(stderr, "[ERROR] plugin_wait_finished called before initialization\n");
         return "Plugin not initialized";

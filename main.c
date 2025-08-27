@@ -7,9 +7,6 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#define NUM_VALID_PLUGINS (sizeof(valid_plugins) / sizeof(valid_plugins[0]))
-
-
 int main(int argc, char** argv) {
     atexit(cleanup_temp_plugin_files);
     if (check_valid_args(argc, argv) == 0) {
@@ -34,16 +31,6 @@ int main(int argc, char** argv) {
 
 //Help functions:
 
-
-// Valid plugin names (must match those supported by your project)
-// static const char* valid_plugins[] = {
-//     "logger",
-//     "typewriter",
-//     "uppercaser",
-//     "rotator",
-//     "flipper",
-//     "expander"
-// };
 
 
 int check_valid_args(int argc, char** argv) {
@@ -73,19 +60,6 @@ int is_arg_starts_with_number(const char* str) {
     return 1;
 }
 
-// int is_valid_plugin_name(const char* name) {
-//     for (size_t i = 0; i < NUM_VALID_PLUGINS; ++i) {
-//         if (strcmp(name, valid_plugins[i]) == 0) return 1;
-//     }
-//     return 0;
-// }
-
-// int are_valid_plugins(int argc, char** argv) {
-//     for (int i = 2; i < argc; ++i) {
-//         if (!is_valid_plugin_name(argv[i])) return 0;
-//     }
-//     return 1;
-// }
 
 void print_invalid_input(void) {
     fprintf(stderr, "Invalid input.\n");
@@ -110,8 +84,6 @@ void print_invalid_input(void) {
 
 
 //Creating the plugin handles
-//Replace your create_plugins_handle function with this version:
-
 plugin_handle_t* create_plugins_handle(char** plugin_names, int plugin_count, int queue_size) {
     plugin_handle_t* plugins = calloc(plugin_count, sizeof(plugin_handle_t));
     if (!plugins) {
@@ -235,7 +207,6 @@ void attach_all_plugins(plugin_handle_t* plugins, int plugin_count) {
 
 //Now when we have the "list", we can iterate it
 #define MAX_LINE_LEN 1025 // 1024 +1 for fgets 
-//NOT SURE HOW IT WORKS WITH THE LAST PLUGIN!!!
 void iterate_input_over_plugins(plugin_handle_t* first_plugin) {
     char buffer[MAX_LINE_LEN];
 
@@ -291,10 +262,10 @@ void clean_plugins(plugin_handle_t* plugins, int plugin_count) {
         }
     }
 
-    free(plugins);  // Free the array of structs
+    free(plugins);  
 }
 
-// Cleanup temporary plugin files created during the run - helps me with double plugined!
+// Cleanup temporary plugin files created during the run - helps me with double plugined
 void cleanup_temp_plugin_files() {
     char cleanup_cmd[256];
     snprintf(cleanup_cmd, sizeof(cleanup_cmd), "rm -f output/*_temp_%d_*.so", getpid());

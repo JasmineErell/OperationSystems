@@ -32,7 +32,7 @@ int consumer_producer_init(consumer_producer_t* queue, int capacity)
     // Initialize monitors
     if (monitor_init(&queue->not_full_monitor) != 0) // Monitor for producers
     {
-        free(queue->items);// Preventing memory leak
+        free(queue->items);
         fprintf(stderr, "Error: Failed to initialize not_full_monitor.\n");
         return -1;
     }
@@ -40,7 +40,7 @@ int consumer_producer_init(consumer_producer_t* queue, int capacity)
     if (monitor_init(&queue->not_empty_monitor) != 0)
     {
         monitor_destroy(&queue->not_full_monitor);
-        free(queue->items);// Preventing memory leak
+        free(queue->items);
         fprintf(stderr, "Error: Failed to initialize not_empty_monitor.\n");
         return -1;
     }
@@ -48,7 +48,7 @@ int consumer_producer_init(consumer_producer_t* queue, int capacity)
     if (monitor_init(&queue->finished_monitor) != 0) {
         monitor_destroy(&queue->not_empty_monitor);
         monitor_destroy(&queue->not_full_monitor);
-        free(queue->items);// Preventing memory leak
+        free(queue->items);
         fprintf(stderr, "Error: Failed to initialize finished_monitor.\n");
         return -1;
     }
@@ -94,7 +94,7 @@ void consumer_producer_destroy(consumer_producer_t* queue)
 
 int consumer_producer_put(consumer_producer_t* queue, const char*item)
 {
-    int warned = 0; // Flag to track if we warned about full queue
+    int warned = 0; // flag to track if we warned about full queue
     if (queue == NULL) {
         fprintf(stderr, "Error: consumer_producer_put received NULL queue.\n");
         return -1;
@@ -112,7 +112,7 @@ int consumer_producer_put(consumer_producer_t* queue, const char*item)
     
     while (queue->count == queue->capacity) {
         if (!warned) {
-            warned = 1; // Set flag to avoid multiple warnings
+            warned = 1; //the flag changing 
         }
         monitor_wait(&queue->not_full_monitor, &queue->shared_mutex);
     }
@@ -143,7 +143,7 @@ char* consumer_producer_get(consumer_producer_t* queue)
     pthread_mutex_lock(&queue->shared_mutex); 
     while (queue->count == 0 && !queue->finished) {
         if (!warned) {
-            warned = 1; // Set flag to avoid multiple warnings
+            warned = 1; //the flag changing
         }
         monitor_wait(&queue->not_empty_monitor, &queue->shared_mutex);
     }

@@ -13,7 +13,7 @@ static const char* plugin_transform(const char* input) {
 
     size_t len = strlen(input);
 
-    // Edge case: empty or single character string doesn't need rotation
+    //empty or single character string doesn't need rotation
     if (len <= 1) {
         return strdup(input);
     }

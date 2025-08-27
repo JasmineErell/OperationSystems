@@ -18,9 +18,11 @@ print_test() {
 }
 
 print_category() {
-    echo -e "${MAGENTA}╔══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${MAGENTA}║${NC} $1"
-    echo -e "${MAGENTA}╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${MAGENTA}===============================================${NC}"
+    echo -e "${MAGENTA} $1${NC}"
+    echo -e "${MAGENTA}===============================================${NC}"
+    echo ""
 }
 
 print_pass() {
@@ -43,7 +45,7 @@ print_debug() {
 TESTS_RUN=0
 TESTS_PASSED=0
 
-# Enhanced test function with detailed input/output display
+# Test function with detailed input/output display
 run_test() {
     local test_name="$1"
     local expected_exit_code="$2"
@@ -53,21 +55,21 @@ run_test() {
     local timeout_duration="${6:-10}"
     
     TESTS_RUN=$((TESTS_RUN + 1))
-    echo -e "${CYAN}─────────────────────────────────────────────────────${NC}"
+    echo -e "${CYAN}-----------------------------------------------${NC}"
     print_test "Running: $test_name"
     
     # Show test details upfront
-    echo -e "${CYAN}📋 Test Configuration:${NC}"
-    echo -e "${CYAN}   Command:${NC} $command"
+    echo -e "${CYAN}Test Configuration:${NC}"
+    echo -e "${CYAN}   Command: $command${NC}"
     if [ -n "$test_input" ]; then
-        echo -e "${CYAN}   Input:${NC} $(echo -e "$test_input" | tr '\n' ' → ' | sed 's/ → $//')"
+        echo -e "${CYAN}   Input: $(echo -e "$test_input" | tr '\n' ' -> ' | sed 's/ -> $//')${NC}"
     else
-        echo -e "${CYAN}   Input:${NC} (no input)"
+        echo -e "${CYAN}   Input: (no input)${NC}"
     fi
     if [ -n "$expected_output" ]; then
-        echo -e "${CYAN}   Expected Pattern:${NC} $expected_output"
+        echo -e "${CYAN}   Expected Pattern: $expected_output${NC}"
     fi
-    echo -e "${CYAN}   Expected Exit Code:${NC} $expected_exit_code"
+    echo -e "${CYAN}   Expected Exit Code: $expected_exit_code${NC}"
     echo ""
     
     # Create temporary files for output
@@ -104,12 +106,12 @@ run_test() {
     local actual_stderr=$(cat "$stderr_file" 2>/dev/null || echo "")
     
     # Always show the actual output
-    echo -e "${CYAN}📤 Actual Results:${NC}"
+    echo -e "${CYAN}Actual Results:${NC}"
     if [ -n "$actual_stdout" ]; then
         echo -e "${GREEN}   STDOUT:${NC}"
         echo "$actual_stdout" | sed 's/^/      /'
     else
-        echo -e "${GREEN}   STDOUT:${NC} (empty)"
+        echo -e "${GREEN}   STDOUT: (empty)${NC}"
     fi
     
     if [ -n "$actual_stderr" ]; then
@@ -117,13 +119,13 @@ run_test() {
         echo "$actual_stderr" | sed 's/^/      /' | head -5
         # Warn about debug output
         if echo "$actual_stderr" | grep -qE "\[INFO\]|\[DEBUG\]"; then
-            echo -e "${YELLOW}   ⚠️  Debug output detected - should be removed for submission${NC}"
+            echo -e "${YELLOW}   WARNING: Debug output detected - should be removed for submission${NC}"
         fi
     else
-        echo -e "${RED}   STDERR:${NC} (empty)"
+        echo -e "${RED}   STDERR: (empty)${NC}"
     fi
     
-    echo -e "${CYAN}   Exit Code:${NC} $actual_exit_code"
+    echo -e "${CYAN}   Exit Code: $actual_exit_code${NC}"
     echo ""
     
     # Check if test passed
@@ -131,26 +133,26 @@ run_test() {
     
     if [ $timed_out -eq 1 ]; then
         print_fail "$test_name - TIMEOUT after ${timeout_duration}s"
-        echo -e "${YELLOW}💡 Program likely hung - check for deadlocks${NC}"
+        echo -e "${YELLOW}NOTE: Program likely hung - check for deadlocks${NC}"
     elif [ "$actual_exit_code" -eq "$expected_exit_code" ]; then
         # Check output if provided
         if [ -n "$expected_output" ]; then
             if echo "$actual_stdout" | grep -q "$expected_output"; then
-                print_pass "$test_name ✅"
+                print_pass "$test_name"
                 TESTS_PASSED=$((TESTS_PASSED + 1))
                 test_passed=1
             else
-                print_fail "$test_name - Expected output pattern not found ❌"
+                print_fail "$test_name - Expected output pattern not found"
                 echo -e "${YELLOW}   Looking for pattern: $expected_output${NC}"
                 test_passed=0
             fi
         else
-            print_pass "$test_name ✅"
+            print_pass "$test_name"
             TESTS_PASSED=$((TESTS_PASSED + 1))
             test_passed=1
         fi
     else
-        print_fail "$test_name - Exit code mismatch ❌"
+        print_fail "$test_name - Exit code mismatch"
         echo -e "${YELLOW}   Expected: $expected_exit_code, Got: $actual_exit_code${NC}"
         test_passed=0
     fi
@@ -160,26 +162,26 @@ run_test() {
     echo ""
 }
 
-# Enhanced function to check memory leaks with multiple methods
+# Function to check memory leaks with multiple methods
 check_memory_leaks() {
     local test_name="$1"
     local command="$2"
     local test_input="$3"
     
     TESTS_RUN=$((TESTS_RUN + 1))
-    echo -e "${CYAN}─────────────────────────────────────────────────────${NC}"
+    echo -e "${CYAN}-----------------------------------------------${NC}"
     print_test "Memory Check: $test_name"
     
-    echo -e "${CYAN}📋 Test Configuration:${NC}"
-    echo -e "${CYAN}   Command:${NC} $command"
+    echo -e "${CYAN}Test Configuration:${NC}"
+    echo -e "${CYAN}   Command: $command${NC}"
     if [ -n "$test_input" ]; then
-        echo -e "${CYAN}   Input:${NC} $(echo -e "$test_input" | tr '\n' ' → ' | sed 's/ → $//')"
+        echo -e "${CYAN}   Input: $(echo -e "$test_input" | tr '\n' ' -> ' | sed 's/ -> $//')${NC}"
     fi
     echo ""
     
     # Method 1: Try Valgrind first (if available)
     if command -v valgrind &> /dev/null; then
-        echo -e "${CYAN}📤 Memory Analysis (Valgrind):${NC}"
+        echo -e "${CYAN}Memory Analysis (Valgrind):${NC}"
         
         local valgrind_output=$(mktemp)
         local stdout_file=$(mktemp)
@@ -196,12 +198,12 @@ check_memory_leaks() {
         # Check for memory leaks
         if grep -q "All heap blocks were freed -- no leaks are possible" "$valgrind_output" ||
            grep -q "definitely lost: 0 bytes in 0 blocks" "$valgrind_output"; then
-            echo -e "${GREEN}   Valgrind Status: No leaks detected ✅${NC}"
-            print_pass "Memory check: $test_name ✅"
+            echo -e "${GREEN}   Valgrind Status: No leaks detected${NC}"
+            print_pass "Memory check: $test_name"
             TESTS_PASSED=$((TESTS_PASSED + 1))
         else
-            echo -e "${RED}   Valgrind Status: Leaks detected ❌${NC}"
-            print_fail "Memory leak detected in: $test_name ❌"
+            echo -e "${RED}   Valgrind Status: Leaks detected${NC}"
+            print_fail "Memory leak detected in: $test_name"
             echo -e "${YELLOW}   Valgrind summary:${NC}"
             grep -E "(lost:|ERROR SUMMARY)" "$valgrind_output" | head -3 | sed 's/^/      /'
         fi
@@ -210,7 +212,7 @@ check_memory_leaks() {
         
     else
         # Method 2: Manual memory monitoring (without Valgrind)
-        echo -e "${CYAN}📤 Memory Analysis (Manual Monitoring):${NC}"
+        echo -e "${CYAN}Memory Analysis (Manual Monitoring):${NC}"
         
         # Create a wrapper script that monitors memory
         local wrapper_script=$(mktemp)
@@ -280,16 +282,16 @@ EOF
         
         # Evaluate results
         if [ $monitor_exit_code -eq 2 ]; then
-            echo -e "${YELLOW}   Memory Status: Potential memory growth detected ⚠️${NC}"
+            echo -e "${YELLOW}   Memory Status: Potential memory growth detected${NC}"
             print_warning "Potential memory issue in: $test_name (manual detection)"
             TESTS_PASSED=$((TESTS_PASSED + 1))  # Don't fail, just warn
         elif [ $monitor_exit_code -eq 0 ]; then
-            echo -e "${GREEN}   Memory Status: No significant memory growth ✅${NC}"
-            print_pass "Memory check: $test_name ✅"
+            echo -e "${GREEN}   Memory Status: No significant memory growth${NC}"
+            print_pass "Memory check: $test_name"
             TESTS_PASSED=$((TESTS_PASSED + 1))
         else
-            echo -e "${RED}   Memory Status: Program crashed during monitoring ❌${NC}"
-            print_fail "Memory check: $test_name failed (crash detected) ❌"
+            echo -e "${RED}   Memory Status: Program crashed during monitoring${NC}"
+            print_fail "Memory check: $test_name failed (crash detected)"
         fi
         
         # Method 3: Additional checks - file descriptor leaks
@@ -308,17 +310,17 @@ EOF
         temp_files_after=$(ls -1 /tmp/*temp* 2>/dev/null | wc -l || echo "0")
         
         if [ $temp_files_after -gt $temp_files_before ]; then
-            echo -e "${YELLOW}   Temp Files: $((temp_files_after - temp_files_before)) temporary files may have been left behind ⚠️${NC}"
+            echo -e "${YELLOW}   Temp Files: $((temp_files_after - temp_files_before)) temporary files may have been left behind${NC}"
         else
-            echo -e "${GREEN}   Temp Files: No temporary files left behind ✅${NC}"
+            echo -e "${GREEN}   Temp Files: No temporary files left behind${NC}"
         fi
         
         # Check if our temporary .so files are cleaned up
         temp_so_files=$(ls -1 output/*_temp_* 2>/dev/null | wc -l || echo "0")
         if [ $temp_so_files -gt 0 ]; then
-            echo -e "${YELLOW}   Plugin Temp Files: $temp_so_files temporary .so files found ⚠️${NC}"
+            echo -e "${YELLOW}   Plugin Temp Files: $temp_so_files temporary .so files found${NC}"
         else
-            echo -e "${GREEN}   Plugin Temp Files: All temporary .so files cleaned up ✅${NC}"
+            echo -e "${GREEN}   Plugin Temp Files: All temporary .so files cleaned up${NC}"
         fi
         
         rm -f "$wrapper_script"
@@ -352,15 +354,14 @@ fi
 chmod +x output/analyzer
 
 echo ""
-echo -e "${BLUE}🧪 COMPREHENSIVE MODULAR PIPELINE TEST SUITE${NC}"
-echo -e "${BLUE}==============================================${NC}"
+echo -e "${BLUE}COMPREHENSIVE MODULAR PIPELINE TEST SUITE${NC}"
+echo -e "${BLUE}==========================================${NC}"
 echo ""
 
 # ===================================================================
 # CATEGORY 1: VALID SIMPLE RUNS (at most 2 plugins)
 # ===================================================================
-print_category "CATEGORY 1: Valid Simple Runs (≤2 plugins)"
-echo ""
+print_category "CATEGORY 1: Valid Simple Runs (2 plugins or less)"
 
 # Single plugin tests
 run_test "1.1 Single plugin - logger only" 0 "./output/analyzer 10 logger" "\\[logger\\] hello" "hello\n<END>" 5
@@ -370,41 +371,39 @@ run_test "1.2 Single plugin - uppercaser (no logger)" 0 "./output/analyzer 5 upp
 run_test "1.3 Single plugin - flipper (no logger)" 0 "./output/analyzer 8 flipper" "olleh" "hello\n<END>" 5
 
 # Two plugin combinations
-run_test "1.4 Two plugins - uppercaser → logger" 0 "./output/analyzer 15 uppercaser logger" "\\[logger\\] HELLO" "hello\n<END>" 5
+run_test "1.4 Two plugins - uppercaser to logger" 0 "./output/analyzer 15 uppercaser logger" "\\[logger\\] HELLO" "hello\n<END>" 5
 
-run_test "1.5 Two plugins - rotator → logger" 0 "./output/analyzer 12 rotator logger" "\\[logger\\] ohell" "hello\n<END>" 5
+run_test "1.5 Two plugins - rotator to logger" 0 "./output/analyzer 12 rotator logger" "\\[logger\\] ohell" "hello\n<END>" 5
 
-run_test "1.6 Two plugins - flipper → logger" 0 "./output/analyzer 6 flipper logger" "\\[logger\\] olleh" "hello\n<END>" 5
+run_test "1.6 Two plugins - flipper to logger" 0 "./output/analyzer 6 flipper logger" "\\[logger\\] olleh" "hello\n<END>" 5
 
-run_test "1.7 Two plugins - expander → logger" 0 "./output/analyzer 20 expander logger" "\\[logger\\] h e l l o" "hello\n<END>" 5
+run_test "1.7 Two plugins - expander to logger" 0 "./output/analyzer 20 expander logger" "\\[logger\\] h e l l o" "hello\n<END>" 5
 
-run_test "1.8 Two plugins - uppercaser → flipper (no logger)" 0 "./output/analyzer 3 uppercaser flipper" "OLLEH" "hello\n<END>" 5
+run_test "1.8 Two plugins - uppercaser to flipper (no logger)" 0 "./output/analyzer 3 uppercaser flipper" "OLLEH" "hello\n<END>" 5
 
 # ===================================================================
 # CATEGORY 2: VALID ADVANCED RUNS (repeated plugins, complex chains)
 # ===================================================================
-echo ""
 print_category "CATEGORY 2: Valid Advanced Runs (complex chains)"
-echo ""
 
 # Multiple same plugins - Fixed expected outputs based on correct rotation logic
-run_test "2.1 Double rotator - rotator → rotator → logger" 0 "./output/analyzer 5 rotator rotator logger" "\\[logger\\] lohel" "hello\n<END>" 8
+run_test "2.1 Double rotator - rotator to rotator to logger" 0 "./output/analyzer 5 rotator rotator logger" "\\[logger\\] lohel" "hello\n<END>" 8
 
-run_test "2.2 Triple rotator - rotator³ → logger" 0 "./output/analyzer 7 rotator rotator rotator logger" "\\[logger\\] llohe" "hello\n<END>" 8
+run_test "2.2 Triple rotator - rotator three times to logger" 0 "./output/analyzer 7 rotator rotator rotator logger" "\\[logger\\] llohe" "hello\n<END>" 8
 
-run_test "2.3 Double flipper - flipper → flipper → logger" 0 "./output/analyzer 4 flipper flipper logger" "\\[logger\\] hello" "hello\n<END>" 8
+run_test "2.3 Double flipper - flipper to flipper to logger" 0 "./output/analyzer 4 flipper flipper logger" "\\[logger\\] hello" "hello\n<END>" 8
 
-run_test "2.4 Double logger - uppercaser → logger → logger" 0 "./output/analyzer 10 uppercaser logger logger" "\\[logger\\] HELLO" "hello\n<END>" 8
+run_test "2.4 Double logger - uppercaser to logger to logger" 0 "./output/analyzer 10 uppercaser logger logger" "\\[logger\\] HELLO" "hello\n<END>" 8
 
 # Complex mixed chains - Fixed expected output
-run_test "2.5 Mixed chain - uppercaser → rotator → flipper → logger" 0 "./output/analyzer 12 uppercaser rotator flipper logger" "\\[logger\\] LLEHO" "hello\n<END>" 10
+run_test "2.5 Mixed chain - uppercaser to rotator to flipper to logger" 0 "./output/analyzer 12 uppercaser rotator flipper logger" "\\[logger\\] LLEHO" "hello\n<END>" 10
 
-run_test "2.6 Long chain - uppercaser → rotator → rotator → flipper → expander → logger" 0 "./output/analyzer 15 uppercaser rotator rotator flipper expander logger" "\\[logger\\]" "test\n<END>" 10
+run_test "2.6 Long chain - uppercaser to rotator to rotator to flipper to expander to logger" 0 "./output/analyzer 15 uppercaser rotator rotator flipper expander logger" "\\[logger\\]" "test\n<END>" 10
 
-run_test "2.7 Complex repeats - rotator → flipper → rotator → uppercaser → logger" 0 "./output/analyzer 8 rotator flipper rotator uppercaser logger" "\\[logger\\]" "abc\n<END>" 10
+run_test "2.7 Complex repeats - rotator to flipper to rotator to uppercaser to logger" 0 "./output/analyzer 8 rotator flipper rotator uppercaser logger" "\\[logger\\]" "abc\n<END>" 10
 
 # Multiple inputs with complex chain
-run_test "2.8 Multiple inputs + complex chain" 0 "./output/analyzer 20 uppercaser rotator logger" "\\[logger\\]" "hello1\nhello2\nworld\n<END>" 10
+run_test "2.8 Multiple inputs with complex chain" 0 "./output/analyzer 20 uppercaser rotator logger" "\\[logger\\]" "hello1\nhello2\nworld\n<END>" 10
 
 # Large queue with simple chain
 run_test "2.9 Large queue test" 0 "./output/analyzer 100 uppercaser flipper logger" "\\[logger\\] DLROW" "world\n<END>" 8
@@ -412,9 +411,7 @@ run_test "2.9 Large queue test" 0 "./output/analyzer 100 uppercaser flipper logg
 # ===================================================================
 # CATEGORY 3: INVALID INPUT TESTS  (expects detailed help text)
 # ===================================================================
-echo ""
 print_category "CATEGORY 3: Invalid Input Tests"
-echo ""
 
 # Expect the new detailed help printed by print_invalid_input() on STDOUT.
 # We match a unique line from that block to ensure it's shown.
@@ -439,9 +436,7 @@ run_test "3.9 Invalid queue size - decimal" 1 "./output/analyzer 10.5 logger" "A
 # ===================================================================
 # CATEGORY 4: INITIALIZATION AND GRACEFUL SHUTDOWN
 # ===================================================================
-echo ""
 print_category "CATEGORY 4: Initialization and Graceful Shutdown"
-echo ""
 
 run_test "4.1 Empty input - immediate END" 0 "./output/analyzer 10 logger" "Pipeline shutdown complete" "<END>" 5
 
@@ -462,9 +457,7 @@ run_test "4.8 Typewriter plugin - timing test" 0 "./output/analyzer 5 typewriter
 # ===================================================================
 # CATEGORY 5: MEMORY ALLOCATION AND MANAGEMENT (Enhanced)
 # ===================================================================
-echo ""
 print_category "CATEGORY 5: Memory Allocation and Management (Enhanced)"
-echo ""
 
 # Test memory with different scenarios - using enhanced memory checking
 check_memory_leaks "5.1 Simple memory test" "./output/analyzer 10 logger" "test\n<END>"
@@ -479,7 +472,7 @@ check_memory_leaks "5.5 Multiple inputs memory test" "./output/analyzer 15 upper
 
 # Enhanced memory stress test
 TESTS_RUN=$((TESTS_RUN + 1))
-echo -e "${CYAN}─────────────────────────────────────────────────────${NC}"
+echo -e "${CYAN}-----------------------------------------------${NC}"
 print_test "5.6 Memory stress test - rapid allocation/deallocation"
 
 # Create large input for stress testing
@@ -489,10 +482,10 @@ for i in {1..20}; do
 done
 STRESS_INPUT="${STRESS_INPUT}<END>"
 
-echo -e "${CYAN}📋 Test Configuration:${NC}"
-echo -e "${CYAN}   Command:${NC} ./output/analyzer 10 uppercaser flipper expander logger"
-echo -e "${CYAN}   Input:${NC} 20 lines of text + <END>"
-echo -e "${CYAN}   Purpose:${NC} Stress test memory allocation/deallocation"
+echo -e "${CYAN}Test Configuration:${NC}"
+echo -e "${CYAN}   Command: ./output/analyzer 10 uppercaser flipper expander logger${NC}"
+echo -e "${CYAN}   Input: 20 lines of text plus END${NC}"
+echo -e "${CYAN}   Purpose: Stress test memory allocation/deallocation${NC}"
 echo ""
 
 start_time=$(date +%s%N)
@@ -501,21 +494,21 @@ stress_exit_code=$?
 end_time=$(date +%s%N)
 duration_ms=$(( (end_time - start_time) / 1000000 ))
 
-echo -e "${CYAN}📤 Performance Results:${NC}"
-echo -e "${CYAN}   Exit Code:${NC} $stress_exit_code"
-echo -e "${CYAN}   Duration:${NC} ${duration_ms}ms"
+echo -e "${CYAN}Performance Results:${NC}"
+echo -e "${CYAN}   Exit Code: $stress_exit_code${NC}"
+echo -e "${CYAN}   Duration: ${duration_ms}ms${NC}"
 echo ""
 
 if [ $stress_exit_code -eq 0 ] && [ $duration_ms -lt 3000 ]; then
-    print_pass "5.6 Memory stress test ✅"
+    print_pass "5.6 Memory stress test"
     TESTS_PASSED=$((TESTS_PASSED + 1))
 else
-    print_fail "5.6 Memory stress test ❌"
+    print_fail "5.6 Memory stress test"
     if [ $stress_exit_code -ne 0 ]; then
         echo -e "${YELLOW}   Exit code: $stress_exit_code${NC}"
     fi
     if [ $duration_ms -ge 3000 ]; then
-        echo -e "${YELLOW}   Too slow: ${duration_ms}ms (expected <3000ms)${NC}"
+        echo -e "${YELLOW}   Too slow: ${duration_ms}ms (expected less than 3000ms)${NC}"
     fi
 fi
 echo ""
@@ -524,23 +517,23 @@ echo ""
 # FINAL SUMMARY
 # ===================================================================
 echo ""
-echo -e "${BLUE}🏁 COMPREHENSIVE TEST RESULTS${NC}"
-echo -e "${BLUE}==============================${NC}"
+echo -e "${BLUE}COMPREHENSIVE TEST RESULTS${NC}"
+echo -e "${BLUE}===========================${NC}"
 echo -e "${BLUE}Tests run: $TESTS_RUN${NC}"
 echo -e "${GREEN}Tests passed: $TESTS_PASSED${NC}"
 echo -e "${RED}Tests failed: $((TESTS_RUN - TESTS_PASSED))${NC}"
 echo ""
 
 if [ $TESTS_PASSED -eq $TESTS_RUN ]; then
-    echo -e "${GREEN}🎉 ALL TESTS PASSED! Your pipeline system is working correctly.${NC}"
+    echo -e "${GREEN}ALL TESTS PASSED! Your pipeline system is working correctly.${NC}"
     echo ""
-    echo -e "${YELLOW}⚠️  REMINDER: Remove debug output from STDERR before submission:${NC}"
+    echo -e "${YELLOW}REMINDER: Remove debug output from STDERR before submission:${NC}"
     echo -e "${YELLOW}   - Remove [INFO] logs${NC}"
     echo -e "${YELLOW}   - Remove [DEBUG] logs${NC}"
     echo -e "${YELLOW}   - Keep only plugin output and error messages${NC}"
     exit 0
 else
-    echo -e "${RED}❌ SOME TESTS FAILED! Review the failed tests above.${NC}"
+    echo -e "${RED}SOME TESTS FAILED! Review the failed tests above.${NC}"
     echo ""
     echo -e "${YELLOW}Common issues to check:${NC}"
     echo -e "${YELLOW}   - Memory management (double free, leaks)${NC}"
